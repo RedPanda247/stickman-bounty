@@ -10,7 +10,13 @@ use player::*;
 fn main() {
     App::new()
         .add_plugins((
-            DefaultPlugins,
+            DefaultPlugins.set(WindowPlugin {
+                primary_window: Some(Window {
+                    present_mode: bevy::window::PresentMode::AutoVsync,
+                    ..default()
+                }),
+                ..default()
+            }),
             bevy_framepace::FramepacePlugin,
             RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(200.0),
             RapierDebugRenderPlugin::default(),
