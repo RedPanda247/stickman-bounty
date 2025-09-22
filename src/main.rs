@@ -7,6 +7,9 @@ mod level;
 use level::*;
 mod player;
 use player::*;
+mod main_menu;
+use main_menu::*;
+
 fn main() {
     App::new()
         .add_plugins((
