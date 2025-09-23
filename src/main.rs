@@ -21,7 +21,7 @@ fn main() {
                 ..default()
             }),
             bevy_framepace::FramepacePlugin,
-            RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(200.0),
+            RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0),
             RapierDebugRenderPlugin::default(),
             EguiPlugin::default(),
             WorldInspectorPlugin::default(),
@@ -33,5 +33,6 @@ fn main() {
 }
 fn startup(mut commands: Commands, mut ev_load_leve_entities: EventWriter<LoadLevelEntities>) {
     commands.spawn(Camera2d);
-    ev_load_leve_entities.write(LoadLevelEntities { level: 1 });
+    main_menu::lead_main_menu_entities(commands);
+    // ev_load_leve_entities.write(LoadLevelEntities { level: 1 });
 }
