@@ -1,42 +1,39 @@
-use bevy::{prelude::*, input_focus};
+use bevy::prelude::*;
 
-use crate::level::*;
+#[derive(Component)]
+struct GrowOnHover;
+pub struct MainMenuPlugin;
 
-fn ui_button_ststem(mut input_focus: ResMut<InputFocus>,
+impl Plugin for MainMenuPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Update, ui_button_system);
+    }
+}
+
+fn ui_button_system(
     mut interaction_query: Query<
-        (Entity, &Interaction, &mut Button, &Children),
-        Changed<Interaction>,
+        (&Interaction, &mut Transform),
+        (Changed<Interaction>, With<GrowOnHover>),
     >,
-    mut text_query: Query<&mut Text>,
-    mut load_level_writer: EventWriter<LoadLevelEvent>,
 ) {
-    for (entity, interaction, mut button, children) in &mut interaction_query {
-        if let Ok(mut text) = text_query.get_mut(children[0]) {
-            match *interaction {
-                Interaction::Pressed => {
-                    **text = "Clicked".to_string();
-                    input_focus.set(entity);
-                    button.set_changed();
-                    load_level_writer.write(LoadLevelEvent { level: 1 });
-                }
-                Interaction::Hovered => {
-                    **text = "Hovered".to_string();
-                    input_focus.set(entity);
-                    button.set_changed();
-                }
-                Interaction::None => {
-                    **text = "Button".to_string();
-                    input_focus.clear();
-                }
+    for (interaction, mut transform) in &mut interaction_query {
+        match *interaction {
+            Interaction::Pressed => {
+                transform.scale = Vec3::splat(1.);
+            }
+            Interaction::Hovered => {
+                transform.scale = Vec3::splat(1.1);
+            }
+            Interaction::None => {
+                transform.scale = Vec3::splat(1.);
             }
         }
     }
 }
 
-
 #[derive(Component)]
 pub struct MainMenuEntity;
-pub fn lead_main_menu_entities(mut commands: Commands) {
+pub fn load_main_menu_entities(mut commands: Commands) {
     commands.spawn((
         MainMenuEntity,
         Text2d::new("Stickman Bounty"),
@@ -61,31 +58,7 @@ pub fn lead_main_menu_entities(mut commands: Commands) {
         Name::new("main menu ui root"),
         children![
             (
-                Button,
-                Node {
-                    width: Val::Auto,
-                    height: Val::Auto,
-                    border: UiRect::all(Val::Px(5.0)),
-                    // horizontally center child text
-                    justify_content: JustifyContent::Center,
-                    // vertically center child text
-                    align_items: AlignItems::Center,
-                    ..default()
-                },
-                BorderColor(Color::WHITE),
-                BorderRadius::MAX,
-                BackgroundColor(Color::BLACK),
-                children![(
-                    Text::new("Button"),
-                    TextFont {
-                        font_size: 33.0,
-                        ..default()
-                    },
-                    TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                    TextShadow::default(),
-                )]
-            ),
-            (
+                GrowOnHover,
                 Button,
                 Node {
                     width: Val::Auto,
@@ -102,7 +75,7 @@ pub fn lead_main_menu_entities(mut commands: Commands) {
                 BorderRadius::MAX,
                 BackgroundColor(Color::BLACK),
                 children![(
-                    Text::new("Button"),
+                    Text::new("Start game"),
                     TextFont {
                         font_size: 33.0,
                         ..default()
