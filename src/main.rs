@@ -9,6 +9,10 @@ mod player;
 use player::*;
 mod main_menu;
 use main_menu::*;
+mod loading;
+use loading::*;
+mod game_data;
+use game_data::*;
 
 fn main() {
     App::new()
