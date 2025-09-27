@@ -38,7 +38,7 @@ pub fn player_movement(
     time: Res<Time>,
     movement_modifiers: Res<MovementModifiers>,
 ) {
-    for (mut rb_vels) in &mut player_info {
+    for mut rb_vels in &mut player_info {
         let max_running_speed =
             movement_modifiers.movement_force * movement_modifiers.max_running_speed;
 
