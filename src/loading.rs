@@ -1,8 +1,6 @@
 use crate::game_data::*;
 use bevy::prelude::*;
 
-
-
 pub struct LoadingPlugin;
 
 impl Plugin for LoadingPlugin {
@@ -10,6 +8,22 @@ impl Plugin for LoadingPlugin {
         app.add_systems(Update, load_level.run_if(not(in_state(GameState::Loading))))
             .add_systems(OnEnter(GameState::Loading), load_game_content);
     }
+}
+
+#[derive(Resource)]
+struct PreviousGameState(PossibleGameStates);
+
+#[derive(Event)]
+pub struct LoadGameContent {
+    content_type: PossibleGameStates,
+}
+
+fn ev_load_game_content(
+    mut ev_load_game_content: EventReader<LoadGameContent>,
+    mut game_state: ResMut<NextState<GameState>>,
+    mut game_state_being_loaded: PossibleGameStates,
+) {
+
 }
 
 enum LoadingScreen {
@@ -30,7 +44,7 @@ enum PossibleGameStates {
     MainMenu,
 }
 
-enum LevelIdentifier{
+enum LevelIdentifier {
     Id(u8),
 }
 
@@ -39,20 +53,16 @@ struct LoadingScreenEntity;
 
 #[derive(Event)]
 pub struct LoadLevel {
-    level: u8,
+    level: LevelIdentifier,
 }
 
-fn load_game_content() {
-    
-}
+fn load_game_content() {}
 
 pub fn load_level(mut ev_load_level: EventReader<LoadLevel>, state: ResMut<NextState<GameState>>) {
-    for load_level in ev_load_level.read() {
-        
-    }
+    for load_level in ev_load_level.read() {}
 }
 
-fn spawn_loading_screen_entities(mut command: Commands) {}
+fn spawn_loading_screen_entities(mut command: Commands, loading_screen: LoadingScreen) {}
 
 fn despawn_game_entities(mut command: Commands, qy_game_entities: Query<Entity, With<GameEntity>>) {
     for game_entity in qy_game_entities {
