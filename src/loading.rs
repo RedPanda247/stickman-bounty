@@ -19,13 +19,13 @@ enum LoadingScreen {
 
 #[derive(Resource)]
 struct LoadingInfo {
-    content_being_loaded: PossibleGameStates,
-    previous_game_state: PossibleGameStates,
+    content_being_loaded: LoadableGameStates,
+    previous_game_state: LoadableGameStates,
     overite_loading_screen: Option<LoadingScreen>,
     assets_loading: Vec<UntypedHandle>,
 }
 
-enum PossibleGameStates {
+enum LoadableGameStates {
     Level(LevelIdentifier),
     MainMenu,
 }
@@ -39,16 +39,17 @@ struct LoadingScreenEntity;
 
 #[derive(Event)]
 pub struct LoadLevel {
-    level: u8,
+    level: LevelIdentifier,
 }
 
 fn load_game_content() {
     
 }
 
-pub fn load_level(mut ev_load_level: EventReader<LoadLevel>, state: ResMut<NextState<GameState>>) {
+pub fn load_level(mut ev_load_level: EventReader<LoadLevel>, mut game_state: ResMut<NextState<GameState>>) {
     for load_level in ev_load_level.read() {
-        
+        game_state.set(GameState::Loading);
+        // set loading info
     }
 }
 
