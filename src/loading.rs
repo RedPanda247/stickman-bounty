@@ -11,17 +11,17 @@ impl Plugin for LoadingPlugin {
 }
 
 #[derive(Resource)]
-struct PreviousGameState(PossibleGameStates);
+struct PreviousGameState(LoadableGameStates);
 
 #[derive(Event)]
 pub struct LoadGameContent {
-    content_type: PossibleGameStates,
+    content_type: LoadableGameStates,
 }
 
 fn ev_load_game_content(
     mut ev_load_game_content: EventReader<LoadGameContent>,
     mut game_state: ResMut<NextState<GameState>>,
-    mut game_state_being_loaded: PossibleGameStates,
+    mut game_state_being_loaded: LoadableGameStates,
 ) {
 
 }
