@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 
-pub struct DataPlugin;
+pub struct GameDataPlugin;
 
-impl Plugin for DataPlugin {
+impl Plugin for GameDataPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<GameState>()
         .init_state::<GameState>();
@@ -13,6 +13,7 @@ impl Plugin for DataPlugin {
 pub enum GameEntity {
     LevelEntity,
     MainMenuEntity,
+    LoadingScreenEntity,
 }
 
 #[derive(Default, Clone, Eq, PartialEq, Hash, Debug, Resource, Reflect, States, SystemSet)]

@@ -9,7 +9,12 @@ impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Update, ev_load_game_content.run_if(not(in_state(GameState::Loading))))
             .add_systems(OnEnter(GameState::Loading), (despawn_game_entities, spawn_loading_screen_entities))
-            .add_systems(Update, check_if_loading_complete.run_if(in_state(GameState::Loading)));
+            .add_systems(Update, check_if_loading_complete.run_if(in_state(GameState::Loading)))
+            .insert_resource(GameStateBeingLoaded(LoadableGameStates::MainMenu))
+            .insert_resource(AssetsBeingLoaded(Vec::new()))
+            .insert_resource(LoadingScreen::FromGameState)
+            .insert_resource(LoadingScreenStartTime(0.))
+            .add_event::<LoadGameState>();
     }
 }
 
@@ -28,8 +33,8 @@ struct LoadingScreenStartTime(f32);
 
 #[derive(Event)]
 pub struct LoadGameState {
-    game_state_to_load: LoadableGameStates,
-    loading_screen: LoadingScreen,
+    pub game_state_to_load: LoadableGameStates,
+    pub loading_screen: LoadingScreen,
 }
 
 fn ev_load_game_content(
@@ -49,13 +54,13 @@ fn ev_load_game_content(
 }
 
 #[derive(Resource, Clone, Copy)]
-enum LoadingScreen {
+pub enum LoadingScreen {
     FromGameState,
     StartGame,
 }
 
 #[derive(Clone)]
-enum LoadableGameStates {
+pub enum LoadableGameStates {
     Level(LevelIdentifier),
     MainMenu,
 }
@@ -98,7 +103,7 @@ fn check_if_loading_complete(
     }
 }
 
-fn spawn_loading_screen_entities(mut command: Commands, loading_screen: Res<LoadingScreen>, game_state_being_loaded: Res<GameStateBeingLoaded>) {
+fn spawn_loading_screen_entities(mut commands: Commands, loading_screen: Res<LoadingScreen>, game_state_being_loaded: Res<GameStateBeingLoaded>) {
     match *loading_screen {
         LoadingScreen::FromGameState => {
             match &game_state_being_loaded.0 {
@@ -106,7 +111,7 @@ fn spawn_loading_screen_entities(mut command: Commands, loading_screen: Res<Load
                     match level_identifier {
                         // TODO: Add more level loading screens as needed
                         LevelIdentifier::Id(_) => {
-                            // spawn level loading screen for level 1
+                            // spawn level loading screen for levels
                         }
                     }
                 },
@@ -117,9 +122,22 @@ fn spawn_loading_screen_entities(mut command: Commands, loading_screen: Res<Load
         },
         LoadingScreen::StartGame => {
             // spawn start game loading screen
+            print!("Spawning start game loading screen");
+            commands.spawn((
+                GameEntity::LoadingScreenEntity,
+                Node {
+                    width: Val::Percent(100.),
+                    height: Val::Percent(100.),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    ..default()
+                },
+                BackgroundColor(Color::BLACK),
+                children![(Text::new("Loading..."),)],
+            ));
         }
     }
-    command.spawn((
+    commands.spawn((
         LoadingScreenEntity,
     ));
 

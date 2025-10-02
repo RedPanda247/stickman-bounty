@@ -31,12 +31,17 @@ fn main() {
             WorldInspectorPlugin::default(),
         ))
         // Project plugins
-        .add_plugins((LevelPlugin, PlayerPlugin, MainMenuPlugin))
+        .add_plugins((LevelPlugin, PlayerPlugin, MainMenuPlugin, LoadingPlugin, GameDataPlugin))
         .add_systems(Startup, startup)
         .run();
 }
-fn startup(mut commands: Commands, mut ev_load_level_entities: EventWriter<LoadLevelEntities>) {
+fn startup(mut commands: Commands, mut ev_load_level_entities: EventWriter<LoadGameState>) {
     commands.spawn(Camera2d);
-    main_menu::load_main_menu_entities(commands);
+    // main_menu::load_main_menu_entities(commands);
     // ev_load_level_entities.write(LoadLevelEntities { level: 1 });
+    ev_load_level_entities.write(LoadGameState {
+        game_state_to_load: LoadableGameStates::MainMenu,
+        loading_screen: LoadingScreen::StartGame,
+    });
+
 }
