@@ -7,11 +7,14 @@ const MIN_LOADING_SCREEN_TIME_SECS: f32 = 4.0;
 
 impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
+        // Systems to handle loading
         app.add_systems(Update, ev_load_game_content.run_if(not(in_state(GameState::Loading))))
             .add_systems(OnEnter(GameState::Loading), (despawn_game_entities, spawn_loading_screen_entities))
             .add_systems(Update, check_if_loading_complete.run_if(in_state(GameState::Loading)))
-            .insert_resource(GameStateBeingLoaded(LoadableGameStates::MainMenu))
-            .insert_resource(AssetsBeingLoaded(Vec::new()))
+            .insert_resource(GameStateBeingLoaded(LoadableGameStates::MainMenu));
+
+        // Resources and Events
+        app.insert_resource(AssetsBeingLoaded(Vec::new()))
             .insert_resource(LoadingScreen::FromGameState)
             .insert_resource(LoadingScreenStartTime(0.))
             .add_event::<LoadGameState>();
@@ -46,7 +49,8 @@ fn ev_load_game_content(
     time: Res<Time>,
 ) {
     for event in ev_load_game_content.read() {
-        game_state.set(event.game_state_to_load.clone().into());
+        print!("Loading new game state...");
+        game_state.set(GameState::Loading);
         res_game_state_being_loaded.0 = event.game_state_to_load.clone();
         *res_loading_screen = event.loading_screen.clone();
         res_loading_screen_start_time.0 = time.elapsed_secs();
@@ -90,16 +94,19 @@ fn check_if_loading_complete(
     mut commands: Commands,
     mut game_state: ResMut<NextState<GameState>>,
     mut res_assets_being_loaded: ResMut<AssetsBeingLoaded>,
-    qy_loading_screen_entities: Query<Entity, With<LoadingScreenEntity>>,
+    qy_loading_screen_entities: Query<(Entity, &GameEntity)>,
     time: Res<Time>,
     res_loading_screen_start_time: Res<LoadingScreenStartTime>,
+    res_game_state_being_loaded: Res<GameStateBeingLoaded>,
 ) {
     let loading_screen_time_elapsed = time.elapsed_secs() - res_loading_screen_start_time.0;
     if res_assets_being_loaded.0.is_empty() && loading_screen_time_elapsed >= MIN_LOADING_SCREEN_TIME_SECS {
-        for loading_screen_entity in qy_loading_screen_entities.iter() {
-            commands.entity(loading_screen_entity).despawn();
+        for (entity, game_entity) in qy_loading_screen_entities.iter() {
+            if let GameEntity::LoadingScreenEntity = game_entity {
+                commands.entity(entity).despawn();
+            }
         }
-        game_state.set(GameState::PlayingLevel);
+        game_state.set(res_game_state_being_loaded.0.clone().into());
     }
 }
 
