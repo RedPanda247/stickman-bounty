@@ -1,5 +1,6 @@
 use crate::game_data::*;
 use bevy::{prelude::*};
+use crate::main_menu::*;
 
 pub struct LoadingPlugin;
 
@@ -9,12 +10,11 @@ impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
         // Systems to handle loading
         app.add_systems(Update, ev_load_game_content.run_if(not(in_state(GameState::Loading))))
-            .add_systems(OnEnter(GameState::Loading), (despawn_game_entities, spawn_loading_screen_entities))
-            .add_systems(Update, check_if_loading_complete.run_if(in_state(GameState::Loading)))
-            .insert_resource(GameStateBeingLoaded(LoadableGameStates::MainMenu));
+            .add_systems(OnEnter(GameState::Loading), (despawn_game_entities, spawn_loading_screen_entities, spawn_content_based_on_state_being_loaded))
+            .add_systems(Update, check_if_loading_complete.run_if(in_state(GameState::Loading)));
 
         // Resources and Events
-        app.insert_resource(AssetsBeingLoaded(Vec::new()))
+        app.insert_resource(GameStateBeingLoaded(LoadableGameStates::MainMenu)).insert_resource(AssetsBeingLoaded(Vec::new()))
             .insert_resource(LoadingScreen::FromGameState)
             .insert_resource(LoadingScreenStartTime(0.))
             .add_event::<LoadGameState>();
@@ -131,6 +131,7 @@ fn spawn_loading_screen_entities(mut commands: Commands, loading_screen: Res<Loa
             // spawn start game loading screen
             print!("Spawning start game loading screen");
             commands.spawn((
+                Transform::from_xyz(0., 10., 100.),
                 GameEntity::LoadingScreenEntity,
                 Node {
                     width: Val::Percent(100.),
@@ -148,6 +149,21 @@ fn spawn_loading_screen_entities(mut commands: Commands, loading_screen: Res<Loa
         LoadingScreenEntity,
     ));
 
+}
+
+fn spawn_content_based_on_state_being_loaded(mut commands: Commands, game_state_being_loaded: Res<GameStateBeingLoaded>) {
+    match &game_state_being_loaded.0 {
+        LoadableGameStates::Level(level_identifier) => {
+            match level_identifier {
+                LevelIdentifier::Id(id) => {
+                    crate::level::load_level_entities(&mut commands, *id);
+                }
+            }
+        },
+        LoadableGameStates::MainMenu => {
+            load_main_menu_entities(&mut commands);
+        }
+    }
 }
 
 fn despawn_game_entities(mut command: Commands, qy_game_entities: Query<Entity, With<GameEntity>>) {

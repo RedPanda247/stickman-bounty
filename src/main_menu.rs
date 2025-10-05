@@ -33,7 +33,7 @@ fn ui_button_system(
 
 #[derive(Component)]
 pub struct MainMenuEntity;
-pub fn load_main_menu_entities(mut commands: Commands) {
+pub fn load_main_menu_entities(commands: &mut Commands) {
     commands.spawn((
         MainMenuEntity,
         Text2d::new("Stickman Bounty"),
