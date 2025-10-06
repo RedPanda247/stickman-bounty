@@ -35,11 +35,10 @@ fn main() {
         .add_systems(Startup, startup)
         .run();
 }
-fn startup(mut commands: Commands, mut ev_load_level_entities: EventWriter<LoadGameState>, game_state: Res<State<GameState>>) {
+fn startup(mut commands: Commands, mut ev_load_level_entities: EventWriter<LoadGameState>) {
     commands.spawn(Camera2d);
     // main_menu::load_main_menu_entities(commands);
     // ev_load_level_entities.write(LoadLevelEntities { level: 1 });
-    println!("{:?}", game_state);
     ev_load_level_entities.write(LoadGameState {
         game_state_to_load: LoadableGameStates::MainMenu,
         loading_screen: LoadingScreen::StartGame,
