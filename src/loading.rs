@@ -1,6 +1,6 @@
 use crate::game_data::*;
 use crate::main_menu::*;
-use bevy::prelude::*;
+use bevy::{prelude::*, asset::LoadState};
 
 pub struct LoadingPlugin;
 
@@ -64,7 +64,6 @@ fn ev_load_game_content(
     time: Res<Time>,
 ) {
     for event in ev_load_game_content.read() {
-        print!("Loading new game state...");
         game_state.set(GameState::Loading);
         res_game_state_being_loaded.0 = event.game_state_to_load.clone();
         *res_loading_screen = event.loading_screen.clone();
@@ -76,6 +75,7 @@ fn ev_load_game_content(
 pub enum LoadingScreen {
     FromGameState,
     StartGame,
+    Basic,
 }
 
 #[derive(Clone)]
@@ -104,21 +104,31 @@ struct LoadingScreenEntity;
 fn check_if_loading_complete(
     mut commands: Commands,
     mut game_state: ResMut<NextState<GameState>>,
-    res_assets_being_loaded: ResMut<AssetsBeingLoaded>,
+    mut res_assets_being_loaded: ResMut<AssetsBeingLoaded>,
     qy_loading_screen_entities: Query<(Entity, &GameEntity)>,
     time: Res<Time>,
     res_loading_screen_start_time: Res<LoadingScreenStartTime>,
     res_game_state_being_loaded: Res<GameStateBeingLoaded>,
+    asset_server: Res<AssetServer>,
 ) {
+    // Get the amount of time that the loading screen has been open for
     let loading_screen_time_elapsed = time.elapsed_secs() - res_loading_screen_start_time.0;
+
+    // Remove loaded assets from vec
+    res_assets_being_loaded.0.retain(|handle| !matches!(asset_server.get_load_state(handle), Some(LoadState::Loaded)));
+
+    // Check if all assets are loaded and if the minimum time has passed
     if res_assets_being_loaded.0.is_empty()
         && loading_screen_time_elapsed >= MIN_LOADING_SCREEN_TIME_SECS
     {
+        // Delete all Loading screen entities
         for (entity, game_entity) in qy_loading_screen_entities.iter() {
             if let GameEntity::LoadingScreenEntity = game_entity {
                 commands.entity(entity).despawn();
             }
         }
+
+        // Change Game State
         game_state.set(res_game_state_being_loaded.0.clone().into());
     }
 }
@@ -145,8 +155,10 @@ fn spawn_loading_screen_entities(
             }
         }
         LoadingScreen::StartGame => {
+            
+        },
+        LoadingScreen::Basic => {
             // spawn start game loading screen
-            print!("Spawning start game loading screen");
             commands.spawn((
                 ZIndex(100),
                 GameEntity::LoadingScreenEntity,
@@ -162,6 +174,8 @@ fn spawn_loading_screen_entities(
             ));
             commands.spawn((
                 GameEntity::LoadingScreenEntity,
+                // Go to front to block visibility for content being loaded
+                Transform::from_xyz(0., 0., 1.),
                 Sprite {
                     color: Color::srgb(0.0, 0.0, 0.0),
                     custom_size: Some(Vec2::new((20000.), (20000.))),

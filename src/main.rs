@@ -2,6 +2,8 @@ use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier2d::prelude::*;
+use std::thread::*;
+use std::time::Duration;
 
 mod level;
 use level::*;
@@ -33,15 +35,20 @@ fn main() {
         // Project plugins
         .add_plugins((LevelPlugin, PlayerPlugin, MainMenuPlugin, LoadingPlugin, GameDataPlugin))
         .add_systems(Startup, startup)
+        .add_systems(PostUpdate, update)
         .run();
 }
-fn startup(mut commands: Commands, mut ev_load_level_entities: EventWriter<LoadGameState>) {
+fn startup(mut commands: Commands, mut ev_load_game_state: EventWriter<LoadGameState>) {
     commands.spawn(Camera2d);
     // main_menu::load_main_menu_entities(commands);
     // ev_load_level_entities.write(LoadLevelEntities { level: 1 });
-    ev_load_level_entities.write(LoadGameState {
+    ev_load_game_state.write(LoadGameState {
         game_state_to_load: LoadableGameStates::MainMenu,
-        loading_screen: LoadingScreen::StartGame,
+        loading_screen: LoadingScreen::Basic,
     });
 
+}
+
+fn update() {
+    // sleep(Duration::from_secs(1));
 }
