@@ -1,4 +1,3 @@
-use std::{thread::sleep, time::Duration};
 
 use bevy::prelude::*;
 
@@ -30,7 +29,7 @@ fn main_menu_buttons(
     >,
     mut ev_load_game_state: EventWriter<LoadGameState>,
 ) {
-    for (interaction, mut button) in &mut qy_main_menu_buttons {
+    for (interaction, button) in &mut qy_main_menu_buttons {
         if let Interaction::Pressed = interaction {
             match button {
                 MainMenuButton::StartGame => {

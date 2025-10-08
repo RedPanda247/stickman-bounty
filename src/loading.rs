@@ -171,7 +171,7 @@ fn spawn_loading_screen_entities(
                 Transform::from_xyz(0., 0., 1.),
                 Sprite {
                     color: Color::srgb(0.0, 0.0, 0.0),
-                    custom_size: Some(Vec2::new((20000.), (20000.))),
+                    custom_size: Some(Vec2::new(20000., 20000.)),
                     ..Default::default()
                 },
             ));

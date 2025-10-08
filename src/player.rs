@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{input::mouse::{self, MouseButtonInput}, prelude::*};
 use bevy_rapier2d::prelude::*;
 
 use crate::game_data::*;
@@ -79,4 +79,18 @@ fn camera_movement(
                 * time_res.delta_secs();
         }
     }
+}
+
+#[derive(Resource)]
+struct RightClickStartPostion(Option<Vec2>);
+
+fn dash_input_system(mut right_click_start_position: Res<RightClickStartPostion> ,players: Query<&Transform, With<Player>>, keyboard_input: Res<ButtonInput<KeyCode>>, mouse_input: Res<ButtonInput<MouseButton>>) {
+    if mouse_input.just_pressed(MouseButton::Right) {
+    }
+    for player_transform in &players {
+        if keyboard_input.any_just_pressed([KeyCode::ArrowRight]) {
+            println!("Dash!");
+        }
+    }
+    
 }

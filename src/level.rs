@@ -4,9 +4,6 @@ use bevy_rapier2d::prelude::*;
 use crate::game_data::*;
 use crate::player::*;
 
-#[derive(Component)]
-pub struct LevelEntity;
-
 pub struct LevelPlugin;
 impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
@@ -32,29 +29,29 @@ pub fn load_level_entities(commands: &mut Commands, level: LevelIdentifier) {
     match level {
         LevelIdentifier::Id(id) => {
             if id == 1 {
-                let sprite_size = 100.;
+                let player_size = 100.;
                 let ground_height = 100.;
-                let ground_width = 1000.;
+                let ground_width = 10000.;
 
                 commands.spawn((
                     Player,
-                    LevelEntity,
+                    GameEntity::LevelEntity,
                     Sprite {
                         color: Color::srgb(0.0, 0.0, 0.0),
-                        custom_size: Some(Vec2::new((sprite_size * 2.), (sprite_size * 2.))),
+                        custom_size: Some(Vec2::new(player_size * 2., player_size * 2.)),
                         ..Default::default()
                     },
                     RigidBody::Dynamic,
                     Velocity::zero(),
                     LockedAxes::ROTATION_LOCKED,
                     Transform::from_xyz(0., 400., 0.),
-                    Collider::cuboid(sprite_size, sprite_size),
+                    Collider::cuboid(player_size, player_size),
                 ));
                 commands.spawn((
-                    LevelEntity,
+                    GameEntity::LevelEntity,
                     Sprite {
                         color: Color::srgb(0.0, 0.0, 0.0),
-                        custom_size: Some(Vec2::new((ground_width * 2.), (ground_height * 2.))),
+                        custom_size: Some(Vec2::new(ground_width * 2., ground_height * 2.)),
                         ..Default::default()
                     },
                     RigidBody::Fixed,

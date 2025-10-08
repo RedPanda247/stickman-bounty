@@ -2,8 +2,6 @@ use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier2d::prelude::*;
-use std::thread::*;
-use std::time::Duration;
 
 mod level;
 use level::*;
