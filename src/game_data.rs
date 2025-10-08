@@ -25,3 +25,8 @@ pub enum GameState {
     MainMenu,
     Loading,
 }
+
+#[derive(Clone)]
+pub enum LevelIdentifier {
+    Id(u8),
+}

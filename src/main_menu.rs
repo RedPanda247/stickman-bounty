@@ -15,7 +15,8 @@ pub struct MainMenuPlugin;
 
 impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, grow_on_hover).add_systems(
+        app.add_systems(Update, grow_on_hover)
+            .add_systems(
             Update,
             main_menu_buttons.run_if(in_state(GameState::MainMenu)),
         );
@@ -34,7 +35,7 @@ fn main_menu_buttons(
             match button {
                 MainMenuButton::StartGame => {
                     ev_load_game_state.write(LoadGameState {
-                        game_state_to_load: LoadableGameStates::MainMenu,
+                        game_state_to_load: LoadableGameStates::Level(LevelIdentifier::Id(1)),
                         loading_screen: LoadingScreen::Basic,
                     });
                 }
@@ -64,11 +65,9 @@ fn grow_on_hover(
     }
 }
 
-#[derive(Component)]
-pub struct MainMenuEntity;
 pub fn load_main_menu_entities(commands: &mut Commands) {
     commands.spawn((
-        MainMenuEntity,
+        GameEntity::MainMenuEntity,
         Text2d::new("Stickman Bounty"),
         Transform::from_xyz(0., 200., 0.),
         TextFont {
@@ -78,7 +77,7 @@ pub fn load_main_menu_entities(commands: &mut Commands) {
         Name::new("Game title"),
     ));
     commands.spawn((
-        MainMenuEntity,
+        GameEntity::MainMenuEntity,
         Node {
             width: Val::Percent(100.0),
             height: Val::Percent(100.0),

@@ -27,7 +27,7 @@ fn main() {
                 ..default()
             }),
             bevy_framepace::FramepacePlugin,
-            RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0),
+            RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(200.0),
             RapierDebugRenderPlugin::default(),
             EguiPlugin::default(),
             WorldInspectorPlugin::default(),

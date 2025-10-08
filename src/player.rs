@@ -1,11 +1,13 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
+use crate::game_data::*;
+
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, player_movement)
+        app.add_systems(Update, (player_movement, camera_movement).run_if(in_state(GameState::PlayingLevel)))
             .init_resource::<MovementModifiers>()
             .register_type::<MovementModifiers>()
             .insert_resource(MovementModifiers::default());
@@ -59,6 +61,22 @@ pub fn player_movement(
             <= max_running_speed
         {
             rb_vels.linvel.x += horizontal_velocity_delta_from_movement;
+        }
+    }
+}
+
+fn camera_movement(
+    mut qy_camera_transform: Query<&mut Transform, (With<Camera2d>, Without<Player>)>,
+    player_transform_query: Query<&Transform, (With<Player>, Without<Camera2d>)>,
+    time_res: Res<Time>,
+) {
+    for mut camera_transform in &mut qy_camera_transform {
+        for player_transform in player_transform_query {
+            let fraction_of_delta_translation_to_move_per_second = 1.;
+            let translation_delta = player_transform.translation - camera_transform.translation;
+            camera_transform.translation += translation_delta
+                * fraction_of_delta_translation_to_move_per_second
+                * time_res.delta_secs();
         }
     }
 }

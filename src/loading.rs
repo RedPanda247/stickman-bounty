@@ -93,13 +93,6 @@ impl Into<GameState> for LoadableGameStates {
     }
 }
 
-#[derive(Clone)]
-enum LevelIdentifier {
-    Id(u8),
-}
-
-#[derive(Component)]
-struct LoadingScreenEntity;
 
 fn check_if_loading_complete(
     mut commands: Commands,
@@ -193,7 +186,7 @@ fn spawn_content_by_state_being_loaded(
     match &game_state_being_loaded.0 {
         LoadableGameStates::Level(level_identifier) => match level_identifier {
             LevelIdentifier::Id(id) => {
-                crate::level::load_level_entities(&mut commands, *id);
+                crate::level::load_level_entities(&mut commands, LevelIdentifier::Id(*id));
             }
         },
         LoadableGameStates::MainMenu => {
