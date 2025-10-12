@@ -1,4 +1,7 @@
-use bevy::{input::mouse::{self, MouseButtonInput}, prelude::*};
+use bevy::{
+    input::mouse::{self, MouseButtonInput},
+    prelude::*,
+};
 use bevy_rapier2d::prelude::*;
 
 use crate::game_data::*;
@@ -7,10 +10,14 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (player_movement, camera_movement).run_if(in_state(GameState::PlayingLevel)))
-            .init_resource::<MovementModifiers>()
-            .register_type::<MovementModifiers>()
-            .insert_resource(MovementModifiers::default());
+        app.add_systems(
+            Update,
+            (player_movement, camera_movement, right_click_start_position_system).run_if(in_state(GameState::PlayingLevel)),
+        )
+        .init_resource::<RightClickStartPostion>()
+        .init_resource::<MovementModifiers>()
+        .register_type::<MovementModifiers>()
+        .insert_resource(MovementModifiers::default());
     }
 }
 
@@ -81,16 +88,51 @@ fn camera_movement(
     }
 }
 
-#[derive(Resource)]
+#[derive(Resource, Default)]
 struct RightClickStartPostion(Option<Vec2>);
 
-fn dash_input_system(mut right_click_start_position: Res<RightClickStartPostion> ,players: Query<&Transform, With<Player>>, keyboard_input: Res<ButtonInput<KeyCode>>, mouse_input: Res<ButtonInput<MouseButton>>) {
+fn right_click_start_position_system(
+    mut right_click_start_position: ResMut<RightClickStartPostion>,
+    mouse_input: Res<ButtonInput<MouseButton>>,
+    windows: Query<&Window>,
+) {
     if mouse_input.just_pressed(MouseButton::Right) {
-    }
-    for player_transform in &players {
-        if keyboard_input.any_just_pressed([KeyCode::ArrowRight]) {
-            println!("Dash!");
+        let window = windows.single().unwrap();
+
+        if let Some(mouse_screen_position) = window.cursor_position() {
+            println!("Screen coords: {}/{}", mouse_screen_position.x, mouse_screen_position.y);
+            right_click_start_position.0 = Some(mouse_screen_position);
         }
     }
-    
+}
+
+#[derive(Event)]
+struct DashEvent {
+    direction: Vec2,
+    speed: f32,
+    duration: f32,
+}
+
+fn right_click_end_position_system(
+    mut right_click_start_position: ResMut<RightClickStartPostion>,
+    mut ev_dash: EventWriter<DashEvent>,
+    mouse_input: Res<ButtonInput<MouseButton>>,
+    windows: Query<&Window>,
+) {
+    if mouse_input.just_released(MouseButton::Right) {
+        let window = windows.single().unwrap();
+
+        if let Some(mouse_screen_position) = window.cursor_position() {
+            println!("Mouse let go: {}/{}", mouse_screen_position.x, mouse_screen_position.y);
+            if let Some(start_position) = right_click_start_position.0 {
+                let direction = mouse_screen_position - start_position;
+                ev_dash.write(DashEvent {
+                    direction,
+                    speed: 1000.,
+                    duration: 0.2,
+                });
+            }
+            right_click_start_position.0 = None;
+        }
+    }
 }
