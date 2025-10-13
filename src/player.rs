@@ -4,7 +4,7 @@ use bevy::{
 };
 use bevy_rapier2d::prelude::*;
 
-use crate::game_data::*;
+use crate::{game_data::*, player};
 
 pub struct PlayerPlugin;
 
@@ -12,8 +12,15 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (player_movement, camera_movement, right_click_start_position_system).run_if(in_state(GameState::PlayingLevel)),
+            (
+                player_movement,
+                camera_movement,
+                right_click_start_position_system,
+                right_click_end_position_system,
+            )
+                .run_if(in_state(GameState::PlayingLevel)),
         )
+        .add_event::<DashEvent>()
         .init_resource::<RightClickStartPostion>()
         .init_resource::<MovementModifiers>()
         .register_type::<MovementModifiers>()
@@ -88,6 +95,16 @@ fn camera_movement(
     }
 }
 
+#[derive(Component, Default)]
+struct CanDash(Option<DashData>);
+
+struct DashData {
+    direction: Vec2,
+    speed: f32,
+    duration: f32,
+    timer: Timer,
+}
+
 #[derive(Resource, Default)]
 struct RightClickStartPostion(Option<Vec2>);
 
@@ -100,7 +117,10 @@ fn right_click_start_position_system(
         let window = windows.single().unwrap();
 
         if let Some(mouse_screen_position) = window.cursor_position() {
-            println!("Screen coords: {}/{}", mouse_screen_position.x, mouse_screen_position.y);
+            println!(
+                "Screen coords: {}/{}",
+                mouse_screen_position.x, mouse_screen_position.y
+            );
             right_click_start_position.0 = Some(mouse_screen_position);
         }
     }
@@ -108,6 +128,7 @@ fn right_click_start_position_system(
 
 #[derive(Event)]
 struct DashEvent {
+    entity: Entity,
     direction: Vec2,
     speed: f32,
     duration: f32,
@@ -118,21 +139,52 @@ fn right_click_end_position_system(
     mut ev_dash: EventWriter<DashEvent>,
     mouse_input: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window>,
+    player_query: Query<Entity, (With<Player>, With<CanDash>)>,
 ) {
+    // If the right mouse button was released
     if mouse_input.just_released(MouseButton::Right) {
+
+        // Assume we only have one window
         let window = windows.single().unwrap();
 
+        // If we have a mouse position
         if let Some(mouse_screen_position) = window.cursor_position() {
-            println!("Mouse let go: {}/{}", mouse_screen_position.x, mouse_screen_position.y);
+            println!(
+                "Mouse let go: {}/{}",
+                mouse_screen_position.x, mouse_screen_position.y
+            );
+            // If we have a start position and it's different from the end position
             if let Some(start_position) = right_click_start_position.0 {
-                let direction = mouse_screen_position - start_position;
-                ev_dash.write(DashEvent {
-                    direction,
-                    speed: 1000.,
-                    duration: 0.2,
-                });
+                if start_position != mouse_screen_position {
+
+                    // Calculate the direction from start to end position
+                    let mut direction = (mouse_screen_position - start_position).normalize();
+
+                    direction.y = -direction.y; // Invert Y axis because window Y cords go downwards
+                    
+                    // Send a dash for for all players
+                    for player_entity in player_query {
+                        ev_dash.write(DashEvent {
+                            entity: player_entity,
+                            direction: direction,
+                            speed: 1000.,
+                            duration: 0.2,
+                        });
+                    }
+                }
             }
+            // Clear the start position
             right_click_start_position.0 = None;
         }
+    }
+}
+
+fn start_dash_system(
+    mut event_reader: EventReader<DashEvent>,
+    mut dash_entity_query: Query<Entity, With<CanDash>>,
+    mut can_dash_query: Query<&mut CanDash>,
+) {
+    for dash_event in event_reader.read() {
+
     }
 }

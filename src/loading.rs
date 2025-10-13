@@ -4,7 +4,7 @@ use bevy::{prelude::*, asset::LoadState};
 
 pub struct LoadingPlugin;
 
-const MIN_LOADING_SCREEN_TIME_SECS: f32 = 4.0;
+const MIN_LOADING_SCREEN_TIME_SECS: f32 = 1.0;
 
 impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
