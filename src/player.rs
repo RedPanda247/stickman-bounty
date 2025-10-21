@@ -98,11 +98,15 @@ fn camera_movement(
     }
 }
 
-#[derive(Component)]
-struct CanDash;
+enum EntityAction {
+    DASH,
+}
 
 #[derive(Component)]
-struct Dashing {
+pub struct CanDash;
+
+#[derive(Component)]
+pub struct Dashing {
     direction: Vec2,
     speed: f32,
     duration: f32,
@@ -147,7 +151,6 @@ fn right_click_end_position_system(
 ) {
     // If the right mouse button was released
     if mouse_input.just_released(MouseButton::Right) {
-
         // Assume we only have one window
         let window = windows.single().unwrap();
 
@@ -160,12 +163,11 @@ fn right_click_end_position_system(
             // If we have a start position and it's different from the end position
             if let Some(start_position) = right_click_start_position.0 {
                 if start_position != mouse_screen_position {
-
                     // Calculate the direction from start to end position
                     let mut direction = (mouse_screen_position - start_position).normalize();
 
                     direction.y = -direction.y; // Invert Y axis because window Y cords go downwards
-                    
+
                     // Send a dash for for all players
                     for player_entity in player_query {
                         ev_dash.write(DashEvent {
@@ -182,11 +184,17 @@ fn right_click_end_position_system(
         }
     }
 }
+#[derive(Event)]
+struct EntityActionEvent(EntityAction);
+fn recieve_entity_action_event(mut event_reader: EventReader<EntityActionEvent>) {
+    
+}
 
 fn recieve_dash_event(
     mut event_reader: EventReader<DashEvent>,
     mut dash_entity_query: Query<Entity, With<CanDash>>,
-    mut commands: Commands,) {
+    mut commands: Commands,
+) {
     for dash_event in event_reader.read() {
         // Get entity from event
         if let Ok(dash_entity) = dash_entity_query.get_mut(dash_event.entity) {
@@ -200,19 +208,10 @@ fn recieve_dash_event(
     }
 }
 
-fn start_stop_dash_system(
-    mut can_dash_query: Query<(&Dashing, &mut Velocity), Added<Dashing>>,
-) {
-    for (dash_component, mut velocity) in &mut can_dash_query {
-        
-    }
+fn start_stop_dash_system(mut can_dash_query: Query<(&Dashing, &mut Velocity), Added<Dashing>>) {
+    for (dash_component, mut velocity) in &mut can_dash_query {}
 }
 
-fn dashing_system(
-    time: Res<Time>,
-    mut can_dash_query: Query<&mut CanDash, Changed<CanDash>>,
-) {
-    for mut dash_component in &mut can_dash_query {
-        
-    }
+fn dashing_system(time: Res<Time>, mut can_dash_query: Query<&mut CanDash, Changed<CanDash>>) {
+    for mut dash_component in &mut can_dash_query {}
 }

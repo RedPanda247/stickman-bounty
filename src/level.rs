@@ -35,7 +35,7 @@ pub fn load_level_entities(commands: &mut Commands, level: LevelIdentifier) {
 
                 commands.spawn((
                     Player,
-                    DashComponent::default(),
+                    CanDash,
                     GameEntity::LevelEntity,
                     Sprite {
                         color: Color::srgb(0.0, 0.0, 0.0),
