@@ -98,11 +98,11 @@ fn camera_movement(
     }
 }
 
-#[derive(Component, Default, Debug)]
-pub struct DashComponent(Option<DashData>);
+#[derive(Component)]
+struct CanDash;
 
-#[derive(Debug)]
-pub struct DashData {
+#[derive(Component)]
+struct Dashing {
     direction: Vec2,
     speed: f32,
     duration: f32,
@@ -143,7 +143,7 @@ fn right_click_end_position_system(
     mut ev_dash: EventWriter<DashEvent>,
     mouse_input: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window>,
-    player_query: Query<Entity, (With<Player>, With<DashComponent>)>,
+    player_query: Query<Entity, (With<Player>, With<CanDash>)>,
 ) {
     // If the right mouse button was released
     if mouse_input.just_released(MouseButton::Right) {
@@ -185,56 +185,34 @@ fn right_click_end_position_system(
 
 fn recieve_dash_event(
     mut event_reader: EventReader<DashEvent>,
-    mut dash_entity_query: Query<Entity, With<DashComponent>>,
-    mut dash_component_query: Query<&mut DashComponent>,
-) {
+    mut dash_entity_query: Query<Entity, With<CanDash>>,
+    mut commands: Commands,) {
     for dash_event in event_reader.read() {
         // Get entity from event
         if let Ok(dash_entity) = dash_entity_query.get_mut(dash_event.entity) {
-
-            // Get the DashComponent of that entity
-            if let Ok(mut dash_component) = dash_component_query.get_mut(dash_entity) {
-                // If the entity is not already dashing, start a new dash
-                if dash_component.0.is_none() {
-                    dash_component.0 = Some(DashData {
-                        direction: dash_event.direction,
-                        speed: dash_event.speed,
-                        duration: dash_event.duration,
-                        timer: Timer::from_seconds(dash_event.duration, TimerMode::Once),
-                    });
-                }
-            }
+            commands.entity(dash_entity).insert(Dashing {
+                direction: dash_event.direction,
+                speed: dash_event.speed,
+                duration: dash_event.duration,
+                timer: Timer::from_seconds(dash_event.duration, TimerMode::Once),
+            });
         }
     }
 }
 
 fn start_stop_dash_system(
-    mut can_dash_query: Query<(&DashComponent, &mut Velocity), Changed<DashComponent>>,
+    mut can_dash_query: Query<(&Dashing, &mut Velocity), Added<Dashing>>,
 ) {
     for (dash_component, mut velocity) in &mut can_dash_query {
-        if let Some(dash_data) = &dash_component.0 {
-            velocity.linvel = dash_data.direction * dash_data.speed;
-            println!(
-                "Started dashing in direction: {}/{} for {} seconds at speed {}",
-                dash_data.direction.x, dash_data.direction.y, dash_data.duration, dash_data.speed
-            );
-        } else {
-            velocity.linvel = Vec2::ZERO;
-            println!("Stopped dashing");
-        }
+        
     }
 }
 
 fn dashing_system(
     time: Res<Time>,
-    mut can_dash_query: Query<&mut DashComponent>,
+    mut can_dash_query: Query<&mut CanDash, Changed<CanDash>>,
 ) {
     for mut dash_component in &mut can_dash_query {
-        if let Some(dash_data) = &mut dash_component.0 {
-            dash_data.timer.tick(time.delta());
-            if dash_data.timer.finished() {
-                dash_component.0 = None;
-            }
-        }
+        
     }
 }
