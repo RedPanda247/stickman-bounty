@@ -17,6 +17,9 @@ impl Plugin for PlayerPlugin {
                 camera_movement,
                 right_click_start_position_system,
                 right_click_end_position_system,
+                recieve_dash_event,
+                start_stop_dash_system,
+                dashing_system,
             )
                 .run_if(in_state(GameState::PlayingLevel)),
         )
@@ -95,10 +98,11 @@ fn camera_movement(
     }
 }
 
-#[derive(Component, Default)]
-struct DashComponent(Option<DashData>);
+#[derive(Component, Default, Debug)]
+pub struct DashComponent(Option<DashData>);
 
-struct DashData {
+#[derive(Debug)]
+pub struct DashData {
     direction: Vec2,
     speed: f32,
     duration: f32,
@@ -182,15 +186,14 @@ fn right_click_end_position_system(
 fn recieve_dash_event(
     mut event_reader: EventReader<DashEvent>,
     mut dash_entity_query: Query<Entity, With<DashComponent>>,
-    mut can_dash_query: Query<&mut DashComponent>,
+    mut dash_component_query: Query<&mut DashComponent>,
 ) {
     for dash_event in event_reader.read() {
-        // Get the entity that event describes should dash
-        // Gets entity from all entities with DashComponent
+        // Get entity from event
         if let Ok(dash_entity) = dash_entity_query.get_mut(dash_event.entity) {
 
             // Get the DashComponent of that entity
-            if let Ok(mut dash_component) = can_dash_query.get_mut(dash_entity) {
+            if let Ok(mut dash_component) = dash_component_query.get_mut(dash_entity) {
                 // If the entity is not already dashing, start a new dash
                 if dash_component.0.is_none() {
                     dash_component.0 = Some(DashData {
@@ -224,7 +227,7 @@ fn start_stop_dash_system(
 
 fn dashing_system(
     time: Res<Time>,
-    mut can_dash_query: Query<&mut DashComponent, Changed<DashComponent>>,
+    mut can_dash_query: Query<&mut DashComponent>,
 ) {
     for mut dash_component in &mut can_dash_query {
         if let Some(dash_data) = &mut dash_component.0 {
