@@ -1,6 +1,5 @@
 use bevy::{
-    input::mouse::{self, MouseButtonInput},
-    prelude::*,
+    ecs::system::command, input::mouse::{self, MouseButtonInput}, prelude::*
 };
 use bevy_rapier2d::prelude::*;
 
@@ -222,4 +221,81 @@ fn start_stop_dash_system(mut can_dash_query: Query<(&Dashing, &mut Velocity), A
 
 fn dashing_system(time: Res<Time>, mut can_dash_query: Query<&mut CanDash, Changed<CanDash>>) {
     for mut dash_component in &mut can_dash_query {}
+}
+
+#[derive(Event)]
+struct StartJumpEvent {
+    entity: Entity,
+    force: f32,
+}
+
+#[derive(Component)]
+struct PlayerControled;
+
+#[derive(Component)]
+struct CanJump;
+
+#[derive(Component)]
+struct StartJump {
+    force: f32,
+}
+fn jump_input_system_1(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut query: Query<&mut Velocity, (With<CanJump>, With<PlayerControled>)>,
+) {
+    if keyboard_input.just_pressed(KeyCode::Space) {
+        for mut velocity in query {
+            velocity.linvel.y = 10.;
+        }
+    }
+}
+
+fn jump_input_system_2(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    query: Query<Entity, (With<CanJump>, With<PlayerControled>)>,
+    mut commands: Commands,
+) {
+    if keyboard_input.just_pressed(KeyCode::Space) {
+        for entity in query {
+            commands.entity(entity).insert(StartJump {
+                force: 10.,
+            });
+        }
+    }
+}
+
+fn start_entity_jump_2(
+    mut query: Query<(Entity, &mut Velocity, &StartJump), (With<CanJump>, Added<StartJump>)>,
+    mut commands: Commands,
+) {
+    for (entity, mut velocity, start_jump_data) in &mut query {
+        velocity.linvel.y = start_jump_data.force;
+        commands.entity(entity).remove::<StartJump>();
+    }
+}
+
+fn jump_input_system_3(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    query: Query<Entity, (With<CanJump>, With<PlayerControled>)>,
+    mut event_writer: EventWriter<StartJumpEvent>,
+) {
+    if keyboard_input.just_pressed(KeyCode::Space) {
+        for entity in query.iter() {
+            event_writer.write(StartJumpEvent {
+                entity,
+                force: 10.0,
+            });
+        }
+    }
+}
+
+fn handle_jump_event_system_3(
+    mut events: EventReader<StartJumpEvent>,
+    mut velocities: Query<&mut Velocity, With<CanJump>>,
+) {
+    for StartJumpEvent { entity, force } in events.read() {
+        if let Ok(mut velocity) = velocities.get_mut(*entity) {
+            velocity.linvel.y = *force;
+        }
+    }
 }
