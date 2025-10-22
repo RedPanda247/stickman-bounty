@@ -106,6 +106,13 @@ enum EntityAction {
 pub struct CanDash;
 
 #[derive(Component)]
+struct StartDash {
+    direction: Vec2,
+    speed: f32,
+    duration: f32,
+}
+
+#[derive(Component)]
 pub struct Dashing {
     direction: Vec2,
     speed: f32,
@@ -148,6 +155,7 @@ fn right_click_end_position_system(
     mouse_input: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window>,
     player_query: Query<Entity, (With<Player>, With<CanDash>)>,
+    mut commands: Commands,
 ) {
     // If the right mouse button was released
     if mouse_input.just_released(MouseButton::Right) {
@@ -170,11 +178,10 @@ fn right_click_end_position_system(
 
                     // Send a dash for for all players
                     for player_entity in player_query {
-                        ev_dash.write(DashEvent {
-                            entity: player_entity,
+                        commands.entity(player_entity).insert(StartDash {
                             direction: direction,
                             speed: 1000.,
-                            duration: 0.2,
+                            duration: 2.,
                         });
                     }
                 }
@@ -184,10 +191,11 @@ fn right_click_end_position_system(
         }
     }
 }
-#[derive(Event)]
-struct EntityActionEvent(EntityAction);
-fn recieve_entity_action_event(mut event_reader: EventReader<EntityActionEvent>) {
-    
+
+fn start_dash_system_entity(query: Query<&mut Velocity, Added<StartDash>>) {
+    for velocity in &query {
+        
+    }
 }
 
 fn recieve_dash_event(
