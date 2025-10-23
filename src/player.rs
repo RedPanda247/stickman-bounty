@@ -1,11 +1,9 @@
 use bevy::{
-    ecs::system::command,
-    input::mouse::{self, MouseButtonInput},
     prelude::*,
 };
 use bevy_rapier2d::prelude::*;
 
-use crate::{game_data::*, player};
+use crate::{game_data::*};
 
 pub struct PlayerPlugin;
 
@@ -98,19 +96,8 @@ fn camera_movement(
     }
 }
 
-enum EntityAction {
-    DASH,
-}
-
 #[derive(Component)]
 pub struct CanDash;
-
-#[derive(Component)]
-struct StartDash {
-    direction: Vec2,
-    speed: f32,
-    duration: f32,
-}
 
 #[derive(Component)]
 pub struct Dashing {
@@ -217,8 +204,8 @@ fn recieve_dash_event(
 }
 
 
-fn dashing_system(time: Res<Time>, mut can_dash_query: Query<(Entity, &mut Dashing, &mut GravityScale, &mut Velocity)>, mut commands: Commands) {
-    for (entity, mut dash_component, mut gravityscale, mut velocity) in can_dash_query {
+fn dashing_system(time: Res<Time>, can_dash_query: Query<(Entity, &mut Dashing, &mut GravityScale, &mut Velocity)>, mut commands: Commands) {
+    for (entity, dash_component, mut gravityscale, mut velocity) in can_dash_query {
         // End dash if it has been on for the time it should
         if time.elapsed_secs() - dash_component.start_time > dash_component.duration {
             velocity.linvel = Vec2::ZERO;
@@ -227,6 +214,22 @@ fn dashing_system(time: Res<Time>, mut can_dash_query: Query<(Entity, &mut Dashi
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #[derive(Event)]
 struct StartJumpEvent {

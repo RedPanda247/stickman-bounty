@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*};
 use bevy_egui::EguiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier2d::prelude::*;
@@ -29,6 +29,7 @@ fn main() {
             RapierDebugRenderPlugin::default(),
             EguiPlugin::default(),
             WorldInspectorPlugin::default(),
+            
         ))
         // Project plugins
         .add_plugins((LevelPlugin, PlayerPlugin, MainMenuPlugin, LoadingPlugin, GameDataPlugin))
