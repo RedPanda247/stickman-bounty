@@ -1,5 +1,7 @@
 use bevy::{
-    ecs::system::command, input::mouse::{self, MouseButtonInput}, prelude::*
+    ecs::system::command,
+    input::mouse::{self, MouseButtonInput},
+    prelude::*,
 };
 use bevy_rapier2d::prelude::*;
 
@@ -17,7 +19,6 @@ impl Plugin for PlayerPlugin {
                 right_click_start_position_system,
                 right_click_end_position_system,
                 recieve_dash_event,
-                start_stop_dash_system,
                 dashing_system,
             )
                 .run_if(in_state(GameState::PlayingLevel)),
@@ -116,7 +117,7 @@ pub struct Dashing {
     direction: Vec2,
     speed: f32,
     duration: f32,
-    timer: Timer,
+    start_time: f32,
 }
 
 #[derive(Resource, Default)]
@@ -131,10 +132,7 @@ fn right_click_start_position_system(
         let window = windows.single().unwrap();
 
         if let Some(mouse_screen_position) = window.cursor_position() {
-            println!(
-                "Screen coords: {}/{}",
-                mouse_screen_position.x, mouse_screen_position.y
-            );
+            
             right_click_start_position.0 = Some(mouse_screen_position);
         }
     }
@@ -146,6 +144,7 @@ struct DashEvent {
     direction: Vec2,
     speed: f32,
     duration: f32,
+    start_time: f32,
 }
 
 fn right_click_end_position_system(
@@ -154,7 +153,7 @@ fn right_click_end_position_system(
     mouse_input: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window>,
     player_query: Query<Entity, (With<Player>, With<CanDash>)>,
-    mut commands: Commands,
+    time: Res<Time>,
 ) {
     // If the right mouse button was released
     if mouse_input.just_released(MouseButton::Right) {
@@ -163,10 +162,7 @@ fn right_click_end_position_system(
 
         // If we have a mouse position
         if let Some(mouse_screen_position) = window.cursor_position() {
-            println!(
-                "Mouse let go: {}/{}",
-                mouse_screen_position.x, mouse_screen_position.y
-            );
+
             // If we have a start position and it's different from the end position
             if let Some(start_position) = right_click_start_position.0 {
                 if start_position != mouse_screen_position {
@@ -177,10 +173,12 @@ fn right_click_end_position_system(
 
                     // Send a dash for for all players
                     for player_entity in player_query {
-                        commands.entity(player_entity).insert(StartDash {
+                        ev_dash.write(DashEvent {
+                            entity: player_entity,
                             direction: direction,
-                            speed: 1000.,
-                            duration: 2.,
+                            duration: 0.2,
+                            speed: 2000.,
+                            start_time: time.elapsed_secs(),
                         });
                     }
                 }
@@ -191,36 +189,43 @@ fn right_click_end_position_system(
     }
 }
 
-fn start_dash_system_entity(query: Query<&mut Velocity, Added<StartDash>>) {
-    for velocity in &query {
-        
-    }
-}
-
 fn recieve_dash_event(
     mut event_reader: EventReader<DashEvent>,
-    mut dash_entity_query: Query<Entity, With<CanDash>>,
+    mut dash_entity_query: Query<( &mut Velocity, Option<&mut GravityScale> ), With<CanDash>>,
     mut commands: Commands,
 ) {
     for dash_event in event_reader.read() {
-        // Get entity from event
-        if let Ok(dash_entity) = dash_entity_query.get_mut(dash_event.entity) {
-            commands.entity(dash_entity).insert(Dashing {
+        if let Ok((mut velocity, gravity_opt)) = dash_entity_query.get_mut(dash_event.entity) {
+            // apply dash
+            velocity.linvel = dash_event.direction * dash_event.speed;
+            if let Some(mut gravityscale) = gravity_opt {
+                *gravityscale = GravityScale(0.0);
+            } else {
+                // add a GravityScale component if missing
+                commands.entity(dash_event.entity).insert(GravityScale(0.0));
+            }
+            commands.entity(dash_event.entity).insert(Dashing {
                 direction: dash_event.direction,
                 speed: dash_event.speed,
                 duration: dash_event.duration,
-                timer: Timer::from_seconds(dash_event.duration, TimerMode::Once),
+                start_time: dash_event.start_time,
             });
+        } else {
+            warn!("Can't find entity {:?} with required components (Velocity, CanDash).", dash_event.entity);
         }
     }
 }
 
-fn start_stop_dash_system(mut can_dash_query: Query<(&Dashing, &mut Velocity), Added<Dashing>>) {
-    for (dash_component, mut velocity) in &mut can_dash_query {}
-}
 
-fn dashing_system(time: Res<Time>, mut can_dash_query: Query<&mut CanDash, Changed<CanDash>>) {
-    for mut dash_component in &mut can_dash_query {}
+fn dashing_system(time: Res<Time>, mut can_dash_query: Query<(Entity, &mut Dashing, &mut GravityScale, &mut Velocity)>, mut commands: Commands) {
+    for (entity, mut dash_component, mut gravityscale, mut velocity) in can_dash_query {
+        // End dash if it has been on for the time it should
+        if time.elapsed_secs() - dash_component.start_time > dash_component.duration {
+            velocity.linvel = Vec2::ZERO;
+            *gravityscale = GravityScale(1.);
+            commands.entity(entity).remove::<Dashing>();
+        }
+    }
 }
 
 #[derive(Event)]
@@ -257,9 +262,7 @@ fn jump_input_system_2(
 ) {
     if keyboard_input.just_pressed(KeyCode::Space) {
         for entity in query {
-            commands.entity(entity).insert(StartJump {
-                force: 10.,
-            });
+            commands.entity(entity).insert(StartJump { force: 10. });
         }
     }
 }
