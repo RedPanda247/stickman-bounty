@@ -1,9 +1,6 @@
-use bevy::{
-    prelude::*,
-};
-use bevy_rapier2d::prelude::*;
+use bevy::prelude::*;
 
-use crate::{game_data::*};
+use crate::game_data::*;
 
 pub struct PlayerPlugin;
 
@@ -18,10 +15,14 @@ impl Plugin for PlayerPlugin {
                 right_click_end_position_system,
                 recieve_dash_event,
                 dashing_system,
+                end_dash,
+                dash_collision_event,
             )
                 .run_if(in_state(GameState::PlayingLevel)),
         )
         .add_event::<DashEvent>()
+        .add_event::<EndDash>()
+        .add_event::<CollisionEvent>() // Add this if not already added by RapierPhysicsPlugin
         .init_resource::<RightClickStartPostion>()
         .init_resource::<MovementModifiers>()
         .register_type::<MovementModifiers>()
@@ -87,11 +88,10 @@ fn camera_movement(
 ) {
     for mut camera_transform in &mut qy_camera_transform {
         for player_transform in player_transform_query {
-            let fraction_of_delta_translation_to_move_per_second = 1.;
+            let camera_follow_strength = 10.;
             let translation_delta = player_transform.translation - camera_transform.translation;
-            camera_transform.translation += translation_delta
-                * fraction_of_delta_translation_to_move_per_second
-                * time_res.delta_secs();
+            camera_transform.translation +=
+                translation_delta * camera_follow_strength * time_res.delta_secs();
         }
     }
 }
@@ -119,7 +119,6 @@ fn right_click_start_position_system(
         let window = windows.single().unwrap();
 
         if let Some(mouse_screen_position) = window.cursor_position() {
-            
             right_click_start_position.0 = Some(mouse_screen_position);
         }
     }
@@ -149,7 +148,6 @@ fn right_click_end_position_system(
 
         // If we have a mouse position
         if let Some(mouse_screen_position) = window.cursor_position() {
-
             // If we have a start position and it's different from the end position
             if let Some(start_position) = right_click_start_position.0 {
                 if start_position != mouse_screen_position {
@@ -163,8 +161,8 @@ fn right_click_end_position_system(
                         ev_dash.write(DashEvent {
                             entity: player_entity,
                             direction: direction,
-                            duration: 0.2,
-                            speed: 2000.,
+                            duration: 0.15,
+                            speed: 4000.,
                             start_time: time.elapsed_secs(),
                         });
                     }
@@ -178,7 +176,7 @@ fn right_click_end_position_system(
 
 fn recieve_dash_event(
     mut event_reader: EventReader<DashEvent>,
-    mut dash_entity_query: Query<( &mut Velocity, Option<&mut GravityScale> ), With<CanDash>>,
+    mut dash_entity_query: Query<(&mut Velocity, Option<&mut GravityScale>), With<CanDash>>,
     mut commands: Commands,
 ) {
     for dash_event in event_reader.read() {
@@ -198,38 +196,79 @@ fn recieve_dash_event(
                 start_time: dash_event.start_time,
             });
         } else {
-            warn!("Can't find entity {:?} with required components (Velocity, CanDash).", dash_event.entity);
+            warn!(
+                "Can't find entity {:?} with required components (Velocity, CanDash).",
+                dash_event.entity
+            );
         }
     }
 }
-
-
-fn dashing_system(time: Res<Time>, can_dash_query: Query<(Entity, &mut Dashing, &mut GravityScale, &mut Velocity)>, mut commands: Commands) {
-    for (entity, dash_component, mut gravityscale, mut velocity) in can_dash_query {
-        // End dash if it has been on for the time it should
-        if time.elapsed_secs() - dash_component.start_time > dash_component.duration {
+#[derive(Event)]
+struct EndDash {
+    entity: Entity,
+}
+fn end_dash(
+    mut query: Query<(Entity, &mut GravityScale, &mut Velocity), With<Dashing>>,
+    mut event_reader: EventReader<EndDash>,
+    mut commands: Commands,
+) {
+    for end_dash_event in event_reader.read() {
+        if let Ok((entity, mut gravity_scale, mut velocity)) = query.get_mut(end_dash_event.entity)
+        {
             velocity.linvel = Vec2::ZERO;
-            *gravityscale = GravityScale(1.);
+            *gravity_scale = GravityScale(1.);
             commands.entity(entity).remove::<Dashing>();
         }
     }
 }
 
+fn dashing_system(
+    time: Res<Time>,
+    query: Query<(Entity, &mut Dashing)>,
+    mut event_writer: EventWriter<EndDash>,
+) {
+    for (entity, dash_component) in query {
+        // End dash if it has been on for the time it should
+        if time.elapsed_secs() - dash_component.start_time > dash_component.duration {
+            event_writer.write(EndDash { entity: entity });
+        }
+    }
+}
+fn dash_collision_event(
+    rapier_context: Query<&mut RapierConfiguration>,
+    mut collision_events: EventReader<CollisionEvent>,
+    query: Query<Entity, With<Dashing>>,
+    mut event_writer: EventWriter<EndDash>,
+) {
+    // Check existing contacts first
+    for entity in &query {
+        let is_colliding = rapier_context
+            .contacts_with(entity)
+            .any(|contact| contact.has_any_active_contacts());
 
+        if is_colliding {
+            event_writer.write(EndDash { entity });
+        }
+    }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+    // Also check new collisions
+    for collision_event in collision_events.read() {
+        match collision_event {
+            CollisionEvent::Started(entity1, entity2, _) => {
+                if let Ok(dashing_entity) = query.get(*entity1) {
+                    event_writer.write(EndDash {
+                        entity: dashing_entity,
+                    });
+                } else if let Ok(dashing_entity) = query.get(*entity2) {
+                    event_writer.write(EndDash {
+                        entity: dashing_entity,
+                    });
+                }
+            }
+            CollisionEvent::Stopped(_, _, _) => {}
+        }
+    }
+}
 
 #[derive(Event)]
 struct StartJumpEvent {

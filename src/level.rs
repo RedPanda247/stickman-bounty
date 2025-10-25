@@ -1,6 +1,6 @@
 use bevy::prelude::*;
-use bevy_rapier2d::prelude::*;
 
+use crate::enemy::*;
 use crate::game_data::*;
 use crate::player::*;
 
@@ -29,7 +29,7 @@ pub fn load_level_entities(commands: &mut Commands, level: LevelIdentifier) {
     match level {
         LevelIdentifier::Id(id) => {
             if id == 1 {
-                let player_size = 100.;
+                let player_size = 50.;
                 let ground_height = 100.;
                 let ground_width = 10000.;
 
@@ -59,6 +59,16 @@ pub fn load_level_entities(commands: &mut Commands, level: LevelIdentifier) {
                     Transform::from_xyz(0., -100., 0.),
                     Collider::cuboid(ground_width, ground_height),
                 ));
+                // Spawn enemy
+                spawn_character(
+                    commands,
+                    CharacterBundle {
+                        size: 50.,
+                        position: vec3(500., 700., 0.),
+                        color: Color::srgb(8.0, 0.0, 0.0),
+                    },
+                    (Enemy),
+                );
             }
         }
     }

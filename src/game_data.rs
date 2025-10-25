@@ -30,3 +30,45 @@ pub enum GameState {
 pub enum LevelIdentifier {
     Id(u8),
 }
+
+#[derive(Component)]
+pub struct CharacterBundle {
+    pub size: f32,
+    pub position: Vec3,
+    pub color: Color,
+}
+
+impl Default for CharacterBundle {
+    fn default() -> Self {
+        Self {
+            size: 100.0,
+            position: Vec3::new(0., 400., 0.),
+            color: Color::BLACK,
+        }
+    }
+}
+
+pub fn spawn_character(
+    commands: &mut Commands,
+    bundle: CharacterBundle,
+    additional_components: impl Bundle,
+) -> Entity {
+    commands
+        .spawn((
+            GameEntity::LevelEntity,
+            Sprite {
+                color: bundle.color,
+                custom_size: Some(Vec2::new(bundle.size * 2., bundle.size * 2.)),
+                ..Default::default()
+            },
+            RigidBody::Dynamic,
+            Velocity::zero(),
+            LockedAxes::ROTATION_LOCKED,
+            Transform::from_xyz(bundle.position.x, bundle.position.y, bundle.position.z),
+            Collider::cuboid(bundle.size, bundle.size),
+
+            ActiveEvents::COLLISION_EVENTS,
+            additional_components,
+        ))
+        .id()
+}

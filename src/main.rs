@@ -1,7 +1,6 @@
 use bevy::{prelude::*};
 use bevy_egui::EguiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use bevy_rapier2d::prelude::*;
 
 mod level;
 use level::*;
@@ -13,6 +12,7 @@ mod loading;
 use loading::*;
 mod game_data;
 use game_data::*;
+mod enemy;
 
 fn main() {
     App::new()
