@@ -1,7 +1,7 @@
-use bevy::{prelude::*};
+use avian2d::prelude::*;
+use bevy::{prelude::*, diagnostic::*};
 use bevy_egui::EguiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use avian2d::prelude::*;
 
 mod level;
 use level::*;
@@ -18,13 +18,15 @@ mod enemy;
 fn main() {
     App::new()
         .add_plugins((
-            DefaultPlugins.set(WindowPlugin {
-                primary_window: Some(Window {
-                    present_mode: bevy::window::PresentMode::AutoVsync,
+            DefaultPlugins
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        present_mode: bevy::window::PresentMode::AutoVsync,
+                        ..default()
+                    }),
                     ..default()
-                }),
-                ..default()
-            }),
+                })
+                .set(ImagePlugin::default_nearest()),
             bevy_framepace::FramepacePlugin,
             EguiPlugin::default(),
             WorldInspectorPlugin::default(),
@@ -32,9 +34,15 @@ fn main() {
         ))
         .insert_resource(Gravity(Vec2::NEG_Y * 3000.0))
         // Project plugins
-        .add_plugins((LevelPlugin, PlayerPlugin, MainMenuPlugin, LoadingPlugin, GameDataPlugin))
+        .add_plugins((
+            LevelPlugin,
+            PlayerPlugin,
+            MainMenuPlugin,
+            LoadingPlugin,
+            GameDataPlugin,
+        ))
         .add_systems(Startup, startup)
-        .add_systems(PostUpdate, update)
+        .add_systems(Update, update)
         .run();
 }
 fn startup(mut commands: Commands, mut ev_load_game_state: MessageWriter<LoadGameState>) {
@@ -45,9 +53,8 @@ fn startup(mut commands: Commands, mut ev_load_game_state: MessageWriter<LoadGam
         game_state_to_load: LoadableGameStates::MainMenu,
         loading_screen: LoadingScreen::Basic,
     });
-
 }
 
-fn update() {
-    // sleep(Duration::from_secs(1));
+fn update(time: Res<Time>) {
+    // println!("{}", (1. / time.delta_secs()).to_string());
 }

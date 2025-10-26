@@ -20,17 +20,18 @@ pub struct LoadLevelEntities {
 pub fn ev_load_level_entities(
     mut commands: Commands,
     mut ev_load_level_entities: MessageReader<LoadLevelEntities>,
+    asset_server: Res<AssetServer>,
 ) {
     for event in ev_load_level_entities.read() {
-        load_level_entities(&mut commands, event.level.clone());
+        load_level_entities(&mut commands, event.level.clone(), &asset_server);
     }
 }
 
-pub fn load_level_entities(commands: &mut Commands, level: LevelIdentifier) {
+pub fn load_level_entities(commands: &mut Commands, level: LevelIdentifier, asset_server: &AssetServer) {
     match level {
         LevelIdentifier::Id(id) => {
             if id == 1 {
-                let player_size = 50.;
+                let player_size = 20.;
                 let ground_height = 100.;
                 let ground_width = 10000.;
 
@@ -54,6 +55,8 @@ pub fn load_level_entities(commands: &mut Commands, level: LevelIdentifier) {
                     Sprite {
                         color: Color::srgb(0.0, 0.0, 0.0),
                         custom_size: Some(Vec2::new(ground_width, ground_height)),
+                        image: asset_server.load("example.png"),
+                        image_mode: SpriteImageMode::Tiled { tile_x: true, tile_y: true, stretch_value: 1. },
                         ..Default::default()
                     },
                     RigidBody::Static,

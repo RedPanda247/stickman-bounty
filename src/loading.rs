@@ -1,5 +1,6 @@
 use crate::game_data::*;
 use crate::main_menu::*;
+use crate::level::*;
 use bevy::{prelude::*, asset::LoadState};
 
 pub struct LoadingPlugin;
@@ -182,11 +183,12 @@ fn spawn_loading_screen_entities(
 fn spawn_content_by_state_being_loaded(
     mut commands: Commands,
     game_state_being_loaded: Res<GameStateBeingLoaded>,
+    mut message_writer: MessageWriter<LoadLevelEntities>
 ) {
     match &game_state_being_loaded.0 {
         LoadableGameStates::Level(level_identifier) => match level_identifier {
             LevelIdentifier::Id(id) => {
-                crate::level::load_level_entities(&mut commands, LevelIdentifier::Id(*id));
+                message_writer.write(LoadLevelEntities { level: LevelIdentifier::Id(1) });
             }
         },
         LoadableGameStates::MainMenu => {
