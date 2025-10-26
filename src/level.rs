@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use avian::prelude::*;
+use avian2d::prelude::*;
 
 use crate::enemy::*;
 use crate::game_data::*;
@@ -8,18 +8,18 @@ use crate::player::*;
 pub struct LevelPlugin;
 impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<LoadLevelEntities>()
+        app.add_message::<LoadLevelEntities>()
             .add_systems(Update, ev_load_level_entities);
     }
 }
-#[derive(Event)]
+#[derive(Message)]
 pub struct LoadLevelEntities {
     pub level: LevelIdentifier,
 }
 
 pub fn ev_load_level_entities(
     mut commands: Commands,
-    mut ev_load_level_entities: EventReader<LoadLevelEntities>,
+    mut ev_load_level_entities: MessageReader<LoadLevelEntities>,
 ) {
     for event in ev_load_level_entities.read() {
         load_level_entities(&mut commands, event.level.clone());
@@ -44,10 +44,10 @@ pub fn load_level_entities(commands: &mut Commands, level: LevelIdentifier) {
                         ..Default::default()
                     },
                     RigidBody::Dynamic,
-                    Velocity::zero(),
+                    LinearVelocity::ZERO,
                     LockedAxes::ROTATION_LOCKED,
                     Transform::from_xyz(0., 400., 0.),
-                    Collider::cuboid(player_size, player_size),
+                    Collider::rectangle(player_size, player_size),
                 ));
                 commands.spawn((
                     GameEntity::LevelEntity,
@@ -56,9 +56,9 @@ pub fn load_level_entities(commands: &mut Commands, level: LevelIdentifier) {
                         custom_size: Some(Vec2::new(ground_width * 2., ground_height * 2.)),
                         ..Default::default()
                     },
-                    RigidBody::Fixed,
+                    RigidBody::Static,
                     Transform::from_xyz(0., -100., 0.),
-                    Collider::cuboid(ground_width, ground_height),
+                    Collider::rectangle(ground_width, ground_height),
                 ));
                 // Spawn enemy
                 spawn_character(
