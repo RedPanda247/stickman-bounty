@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-
+use avian2d::prelude::*;
 pub struct GameDataPlugin;
 
 impl Plugin for GameDataPlugin {
@@ -62,12 +62,11 @@ pub fn spawn_character(
                 ..Default::default()
             },
             RigidBody::Dynamic,
-            Velocity::zero(),
+            LinearVelocity::ZERO,
             LockedAxes::ROTATION_LOCKED,
             Transform::from_xyz(bundle.position.x, bundle.position.y, bundle.position.z),
-            Collider::cuboid(bundle.size, bundle.size),
+            Collider::rectangle(bundle.size, bundle.size),
 
-            ActiveEvents::COLLISION_EVENTS,
             additional_components,
         ))
         .id()
