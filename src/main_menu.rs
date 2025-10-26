@@ -27,7 +27,7 @@ fn main_menu_buttons(
         (&Interaction, &MainMenuButton),
         (Changed<Interaction>, With<Button>),
     >,
-    mut ev_load_game_state: EventWriter<LoadGameState>,
+    mut ev_load_game_state: MessageWriter<LoadGameState>,
 ) {
     for (interaction, button) in &mut qy_main_menu_buttons {
         if let Interaction::Pressed = interaction {
@@ -102,7 +102,7 @@ pub fn load_main_menu_entities(commands: &mut Commands) {
                 align_items: AlignItems::Center,
                 ..default()
             },
-            BorderColor(Color::WHITE),
+            
             BorderRadius::MAX,
             BackgroundColor(Color::BLACK),
             children![(
