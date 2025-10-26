@@ -14,14 +14,11 @@ impl Plugin for PlayerPlugin {
                 camera_movement,
                 right_click_start_position_system,
                 right_click_end_position_system,
-                recieve_dash_event,
                 dashing_system,
-                end_dash,
-                dash_collision_event,
             )
                 .run_if(in_state(GameState::PlayingLevel)),
         )
-        .add_message::<EndDash>()
+        .add_observer(end_dash)
         .add_observer(recieve_dash_event)
         .init_resource::<RightClickStartPostion>()
         .init_resource::<MovementModifiers>()
@@ -214,8 +211,8 @@ struct EndDash {
     entity: Entity,
 }
 fn end_dash(
+    end_dash_event: On<EndDash>,
     mut query: Query<(Entity, &mut GravityScale, &mut LinearVelocity), With<Dashing>>,
-    mut end_dash_event: On<EndDash>,
     mut commands: Commands,
 ) {
     if let Ok((entity, mut gravity_scale, mut velocity)) = query.get_mut(end_dash_event.entity) {
@@ -225,11 +222,7 @@ fn end_dash(
     }
 }
 
-fn dashing_system(
-    time: Res<Time>,
-    query: Query<(Entity, &mut Dashing)>,
-    mut commands: Commands,
-) {
+fn dashing_system(time: Res<Time>, query: Query<(Entity, &mut Dashing)>, mut commands: Commands) {
     for (entity, dash_component) in query {
         // End dash if it has been on for the time it should
         if time.elapsed_secs() - dash_component.start_time > dash_component.duration {
@@ -237,38 +230,4 @@ fn dashing_system(
         }
     }
 }
-fn dash_collision_event(
-    rapier_context: Query<&mut RapierConfiguration>,
-    mut collision_events: EventReader<CollisionEvent>,
-    query: Query<Entity, With<Dashing>>,
-    mut event_writer: EventWriter<EndDash>,
-) {
-    // Check existing contacts first
-    for entity in &query {
-        let is_colliding = rapier_context
-            .contacts_with(entity)
-            .any(|contact| contact.has_any_active_contacts());
-
-        if is_colliding {
-            event_writer.write(EndDash { entity });
-        }
-    }
-
-    // Also check new collisions
-    for collision_event in collision_events.read() {
-        match collision_event {
-            CollisionEvent::Started(entity1, entity2, _) => {
-                if let Ok(dashing_entity) = query.get(*entity1) {
-                    event_writer.write(EndDash {
-                        entity: dashing_entity,
-                    });
-                } else if let Ok(dashing_entity) = query.get(*entity2) {
-                    event_writer.write(EndDash {
-                        entity: dashing_entity,
-                    });
-                }
-            }
-            CollisionEvent::Stopped(_, _, _) => {}
-        }
-    }
-}
+fn dash_collision_event() {}

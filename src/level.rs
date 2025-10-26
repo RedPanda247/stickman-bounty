@@ -40,7 +40,7 @@ pub fn load_level_entities(commands: &mut Commands, level: LevelIdentifier) {
                     GameEntity::LevelEntity,
                     Sprite {
                         color: Color::srgb(0.0, 0.0, 0.0),
-                        custom_size: Some(Vec2::new(player_size * 2., player_size * 2.)),
+                        custom_size: Some(Vec2::new(player_size, player_size)),
                         ..Default::default()
                     },
                     RigidBody::Dynamic,
@@ -53,7 +53,7 @@ pub fn load_level_entities(commands: &mut Commands, level: LevelIdentifier) {
                     GameEntity::LevelEntity,
                     Sprite {
                         color: Color::srgb(0.0, 0.0, 0.0),
-                        custom_size: Some(Vec2::new(ground_width * 2., ground_height * 2.)),
+                        custom_size: Some(Vec2::new(ground_width, ground_height)),
                         ..Default::default()
                     },
                     RigidBody::Static,

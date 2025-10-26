@@ -28,8 +28,9 @@ fn main() {
             bevy_framepace::FramepacePlugin,
             EguiPlugin::default(),
             WorldInspectorPlugin::default(),
-            PhysicsPlugins::default(),
+            PhysicsPlugins::default().set(PhysicsInterpolationPlugin::interpolate_all()),
         ))
+        .insert_resource(Gravity(Vec2::NEG_Y * 3000.0))
         // Project plugins
         .add_plugins((LevelPlugin, PlayerPlugin, MainMenuPlugin, LoadingPlugin, GameDataPlugin))
         .add_systems(Startup, startup)

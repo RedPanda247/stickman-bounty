@@ -58,7 +58,7 @@ pub fn spawn_character(
             GameEntity::LevelEntity,
             Sprite {
                 color: bundle.color,
-                custom_size: Some(Vec2::new(bundle.size * 2., bundle.size * 2.)),
+                custom_size: Some(Vec2::new(bundle.size, bundle.size)),
                 ..Default::default()
             },
             RigidBody::Dynamic,
