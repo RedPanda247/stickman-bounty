@@ -20,9 +20,9 @@ impl Plugin for PlayerPlugin {
             )
                 .run_if(in_state(GameState::PlayingLevel)),
         )
-        .add_event::<DashEvent>()
-        .add_event::<EndDash>()
-        .add_event::<CollisionEvent>() // Add this if not already added by RapierPhysicsPlugin
+        .add_message::<DashEvent>()
+        .add_message::<EndDash>()
+        .add_observer(recieve_dash_event)
         .init_resource::<RightClickStartPostion>()
         .init_resource::<MovementModifiers>()
         .register_type::<MovementModifiers>()
@@ -124,7 +124,7 @@ fn right_click_start_position_system(
     }
 }
 
-#[derive(Event)]
+#[derive(EntityEvent)]
 struct DashEvent {
     entity: Entity,
     direction: Vec2,
@@ -135,11 +135,12 @@ struct DashEvent {
 
 fn right_click_end_position_system(
     mut right_click_start_position: ResMut<RightClickStartPostion>,
-    mut ev_dash: EventWriter<DashEvent>,
+    // mut ev_dash: EventWriter<DashEvent>,
     mouse_input: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window>,
     player_query: Query<Entity, (With<Player>, With<CanDash>)>,
     time: Res<Time>,
+    mut commands: Commands,
 ) {
     // If the right mouse button was released
     if mouse_input.just_released(MouseButton::Right) {
@@ -158,13 +159,20 @@ fn right_click_end_position_system(
 
                     // Send a dash for for all players
                     for player_entity in player_query {
-                        ev_dash.write(DashEvent {
+                        commands.trigger(DashEvent {
                             entity: player_entity,
                             direction: direction,
                             duration: 0.15,
                             speed: 4000.,
                             start_time: time.elapsed_secs(),
                         });
+                        // ev_dash.write(DashEvent {
+                        //     entity: player_entity,
+                        //     direction: direction,
+                        //     duration: 0.15,
+                        //     speed: 4000.,
+                        //     start_time: time.elapsed_secs(),
+                        // });
                     }
                 }
             }
@@ -175,7 +183,7 @@ fn right_click_end_position_system(
 }
 
 fn recieve_dash_event(
-    mut event_reader: EventReader<DashEvent>,
+    mut event_reader: On<DashEvent>,
     mut dash_entity_query: Query<(&mut Velocity, Option<&mut GravityScale>), With<CanDash>>,
     mut commands: Commands,
 ) {
@@ -203,7 +211,7 @@ fn recieve_dash_event(
         }
     }
 }
-#[derive(Event)]
+#[derive(Message)]
 struct EndDash {
     entity: Entity,
 }
@@ -266,81 +274,6 @@ fn dash_collision_event(
                 }
             }
             CollisionEvent::Stopped(_, _, _) => {}
-        }
-    }
-}
-
-#[derive(Event)]
-struct StartJumpEvent {
-    entity: Entity,
-    force: f32,
-}
-
-#[derive(Component)]
-struct PlayerControled;
-
-#[derive(Component)]
-struct CanJump;
-
-#[derive(Component)]
-struct StartJump {
-    force: f32,
-}
-fn jump_input_system_1(
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut query: Query<&mut Velocity, (With<CanJump>, With<PlayerControled>)>,
-) {
-    if keyboard_input.just_pressed(KeyCode::Space) {
-        for mut velocity in query {
-            velocity.linvel.y = 10.;
-        }
-    }
-}
-
-fn jump_input_system_2(
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    query: Query<Entity, (With<CanJump>, With<PlayerControled>)>,
-    mut commands: Commands,
-) {
-    if keyboard_input.just_pressed(KeyCode::Space) {
-        for entity in query {
-            commands.entity(entity).insert(StartJump { force: 10. });
-        }
-    }
-}
-
-fn start_entity_jump_2(
-    mut query: Query<(Entity, &mut Velocity, &StartJump), (With<CanJump>, Added<StartJump>)>,
-    mut commands: Commands,
-) {
-    for (entity, mut velocity, start_jump_data) in &mut query {
-        velocity.linvel.y = start_jump_data.force;
-        commands.entity(entity).remove::<StartJump>();
-    }
-}
-
-fn jump_input_system_3(
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    query: Query<Entity, (With<CanJump>, With<PlayerControled>)>,
-    mut event_writer: EventWriter<StartJumpEvent>,
-) {
-    if keyboard_input.just_pressed(KeyCode::Space) {
-        for entity in query.iter() {
-            event_writer.write(StartJumpEvent {
-                entity,
-                force: 10.0,
-            });
-        }
-    }
-}
-
-fn handle_jump_event_system_3(
-    mut events: EventReader<StartJumpEvent>,
-    mut velocities: Query<&mut Velocity, With<CanJump>>,
-) {
-    for StartJumpEvent { entity, force } in events.read() {
-        if let Ok(mut velocity) = velocities.get_mut(*entity) {
-            velocity.linvel.y = *force;
         }
     }
 }

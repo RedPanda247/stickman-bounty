@@ -49,14 +49,14 @@ struct LoadingScreenStartTime(f32);
 
 // Events to trigger loading
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct LoadGameState {
     pub game_state_to_load: LoadableGameStates,
     pub loading_screen: LoadingScreen,
 }
 
 fn ev_load_game_content(
-    mut ev_load_game_content: EventReader<LoadGameState>,
+    mut ev_load_game_content: MessageReader<LoadGameState>,
     mut game_state: ResMut<NextState<GameState>>,
     mut res_game_state_being_loaded: ResMut<GameStateBeingLoaded>,
     mut res_loading_screen: ResMut<LoadingScreen>,
