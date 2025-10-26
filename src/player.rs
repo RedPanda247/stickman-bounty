@@ -1,3 +1,4 @@
+use avian2d::prelude::*;
 use bevy::prelude::*;
 
 use crate::game_data::*;
@@ -20,7 +21,6 @@ impl Plugin for PlayerPlugin {
             )
                 .run_if(in_state(GameState::PlayingLevel)),
         )
-        .add_message::<DashEvent>()
         .add_message::<EndDash>()
         .add_observer(recieve_dash_event)
         .init_resource::<RightClickStartPostion>()
@@ -52,7 +52,7 @@ pub struct Player;
 
 pub fn player_movement(
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut player_info: Query<&mut Velocity, With<Player>>,
+    mut player_info: Query<&mut LinearVelocity, With<Player>>,
     time: Res<Time>,
     movement_modifiers: Res<MovementModifiers>,
 ) {
@@ -61,7 +61,7 @@ pub fn player_movement(
             movement_modifiers.movement_force * movement_modifiers.max_running_speed;
 
         if keyboard_input.any_just_pressed([KeyCode::KeyW, KeyCode::ArrowUp]) {
-            rb_vels.linvel.y = movement_modifiers.movement_force * movement_modifiers.jumping_force;
+            rb_vels.y = movement_modifiers.movement_force * movement_modifiers.jumping_force;
         }
 
         let left = keyboard_input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]);
@@ -71,12 +71,12 @@ pub fn player_movement(
         let horizontal_velocity_delta_from_movement =
             x_axis_movement * movement_modifiers.movement_force * time.delta_secs();
 
-        let horizontal_velocity = rb_vels.linvel.x;
+        let horizontal_velocity = rb_vels.x;
 
         if (horizontal_velocity + horizontal_velocity_delta_from_movement).abs()
             <= max_running_speed
         {
-            rb_vels.linvel.x += horizontal_velocity_delta_from_movement;
+            rb_vels.x += horizontal_velocity_delta_from_movement;
         }
     }
 }
@@ -183,62 +183,57 @@ fn right_click_end_position_system(
 }
 
 fn recieve_dash_event(
-    mut event_reader: On<DashEvent>,
-    mut dash_entity_query: Query<(&mut Velocity, Option<&mut GravityScale>), With<CanDash>>,
+    dash_event: On<DashEvent>,
+    mut dash_entity_query: Query<(&mut LinearVelocity, Option<&mut GravityScale>), With<CanDash>>,
     mut commands: Commands,
 ) {
-    for dash_event in event_reader.read() {
-        if let Ok((mut velocity, gravity_opt)) = dash_entity_query.get_mut(dash_event.entity) {
-            // apply dash
-            velocity.linvel = dash_event.direction * dash_event.speed;
-            if let Some(mut gravityscale) = gravity_opt {
-                *gravityscale = GravityScale(0.0);
-            } else {
-                // add a GravityScale component if missing
-                commands.entity(dash_event.entity).insert(GravityScale(0.0));
-            }
-            commands.entity(dash_event.entity).insert(Dashing {
-                direction: dash_event.direction,
-                speed: dash_event.speed,
-                duration: dash_event.duration,
-                start_time: dash_event.start_time,
-            });
+    if let Ok((mut velocity, gravity_opt)) = dash_entity_query.get_mut(dash_event.entity) {
+        // apply dash
+        velocity.0 = dash_event.direction * dash_event.speed;
+        if let Some(mut gravityscale) = gravity_opt {
+            *gravityscale = GravityScale(0.0);
         } else {
-            warn!(
-                "Can't find entity {:?} with required components (Velocity, CanDash).",
-                dash_event.entity
-            );
+            // add a GravityScale component if missing
+            commands.entity(dash_event.entity).insert(GravityScale(0.0));
         }
+        commands.entity(dash_event.entity).insert(Dashing {
+            direction: dash_event.direction,
+            speed: dash_event.speed,
+            duration: dash_event.duration,
+            start_time: dash_event.start_time,
+        });
+    } else {
+        warn!(
+            "Can't find entity {:?} with required components (Velocity, CanDash).",
+            dash_event.entity
+        );
     }
 }
-#[derive(Message)]
+#[derive(EntityEvent)]
 struct EndDash {
     entity: Entity,
 }
 fn end_dash(
-    mut query: Query<(Entity, &mut GravityScale, &mut Velocity), With<Dashing>>,
-    mut event_reader: EventReader<EndDash>,
+    mut query: Query<(Entity, &mut GravityScale, &mut LinearVelocity), With<Dashing>>,
+    mut end_dash_event: On<EndDash>,
     mut commands: Commands,
 ) {
-    for end_dash_event in event_reader.read() {
-        if let Ok((entity, mut gravity_scale, mut velocity)) = query.get_mut(end_dash_event.entity)
-        {
-            velocity.linvel = Vec2::ZERO;
-            *gravity_scale = GravityScale(1.);
-            commands.entity(entity).remove::<Dashing>();
-        }
+    if let Ok((entity, mut gravity_scale, mut velocity)) = query.get_mut(end_dash_event.entity) {
+        velocity.0 = Vec2::ZERO;
+        *gravity_scale = GravityScale(1.);
+        commands.entity(entity).remove::<Dashing>();
     }
 }
 
 fn dashing_system(
     time: Res<Time>,
     query: Query<(Entity, &mut Dashing)>,
-    mut event_writer: EventWriter<EndDash>,
+    mut commands: Commands,
 ) {
     for (entity, dash_component) in query {
         // End dash if it has been on for the time it should
         if time.elapsed_secs() - dash_component.start_time > dash_component.duration {
-            event_writer.write(EndDash { entity: entity });
+            commands.trigger(EndDash { entity });
         }
     }
 }
