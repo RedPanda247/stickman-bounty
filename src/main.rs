@@ -1,6 +1,7 @@
 use avian2d::prelude::*;
 use bevy::{prelude::*, diagnostic::*};
 use bevy_egui::EguiPlugin;
+use bevy_framepace::{FramepaceSettings, Limiter};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 mod level;
@@ -21,17 +22,19 @@ fn main() {
             DefaultPlugins
                 .set(WindowPlugin {
                     primary_window: Some(Window {
-                        present_mode: bevy::window::PresentMode::AutoVsync,
+                        present_mode: bevy::window::PresentMode::AutoNoVsync,
                         ..default()
                     }),
                     ..default()
                 })
                 .set(ImagePlugin::default_nearest()),
-            bevy_framepace::FramepacePlugin,
-            EguiPlugin::default(),
-            WorldInspectorPlugin::default(),
+            // bevy_framepace::FramepacePlugin,
+            // EguiPlugin::default(),
+            // WorldInspectorPlugin::default(),
             PhysicsPlugins::default().set(PhysicsInterpolationPlugin::interpolate_all()),
+            // PhysicsPlugins::default(),
         ))
+        .insert_resource(FramepaceSettings{ limiter: Limiter::from_framerate(144.)})
         .insert_resource(Gravity(Vec2::NEG_Y * 3000.0))
         // Project plugins
         .add_plugins((
@@ -50,11 +53,11 @@ fn startup(mut commands: Commands, mut ev_load_game_state: MessageWriter<LoadGam
     // main_menu::load_main_menu_entities(commands);
     // ev_load_level_entities.write(LoadLevelEntities { level: 1 });
     ev_load_game_state.write(LoadGameState {
-        game_state_to_load: LoadableGameStates::MainMenu,
+        game_state_to_load: LoadableGameStates::Level(LevelIdentifier::Id(1)),
         loading_screen: LoadingScreen::Basic,
     });
 }
 
 fn update(time: Res<Time>) {
-    // println!("{}", (1. / time.delta_secs()).to_string());
+    println!("{}", (1. / time.delta_secs()).to_string());
 }

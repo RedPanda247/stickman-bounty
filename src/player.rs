@@ -11,15 +11,19 @@ impl Plugin for PlayerPlugin {
             Update,
             (
                 player_movement,
-                camera_movement,
                 right_click_start_position_system,
                 right_click_end_position_system,
                 dashing_system,
             )
                 .run_if(in_state(GameState::PlayingLevel)),
         )
+        .add_systems(
+            PostUpdate,
+            camera_movement.before(TransformSystems::Propagate),
+        )
         .add_observer(end_dash)
         .add_observer(recieve_dash_event)
+        .add_observer(dash_collision)
         .init_resource::<RightClickStartPostion>()
         .init_resource::<MovementModifiers>()
         .register_type::<MovementModifiers>()
@@ -230,4 +234,19 @@ fn dashing_system(time: Res<Time>, query: Query<(Entity, &mut Dashing)>, mut com
         }
     }
 }
-fn dash_collision_event() {}
+fn dash_collision(
+    collision: On<CollisionStart>,
+    qy: Query<Entity, With<Dashing>>,
+    mut commands: Commands,
+) {
+    let entity_a = collision.collider1;
+    let entity_b = collision.collider2;
+
+    if qy.get(entity_a).is_ok() {
+        // entity_a is dashing
+        commands.trigger(EndDash { entity: entity_a });
+    } else if qy.get(entity_b).is_ok() {
+        // entity_b is dashing
+        commands.trigger(EndDash { entity: entity_b });
+    }
+}
