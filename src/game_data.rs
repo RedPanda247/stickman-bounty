@@ -71,3 +71,26 @@ pub fn spawn_character(
         ))
         .id()
 }
+pub fn spawn_grappling_hook(
+    commands: &mut Commands,
+    bundle: CharacterBundle,
+    additional_components: impl Bundle,
+) -> Entity {
+    commands
+        .spawn((
+            GameEntity::LevelEntity,
+            Sprite {
+                color: bundle.color,
+                custom_size: Some(Vec2::new(bundle.size, bundle.size)),
+                ..Default::default()
+            },
+            RigidBody::Dynamic,
+            LinearVelocity::ZERO,
+            LockedAxes::ROTATION_LOCKED,
+            Transform::from_xyz(bundle.position.x, bundle.position.y, bundle.position.z),
+            Collider::rectangle(bundle.size, bundle.size),
+
+            additional_components,
+        ))
+        .id()
+}

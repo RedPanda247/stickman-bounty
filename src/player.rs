@@ -11,19 +11,18 @@ impl Plugin for PlayerPlugin {
             Update,
             (
                 player_movement,
+                camera_movement,
                 right_click_start_position_system,
                 right_click_end_position_system,
                 dashing_system,
             )
                 .run_if(in_state(GameState::PlayingLevel)),
         )
-        .add_systems(
-            PostUpdate,
-            camera_movement.before(TransformSystems::Propagate),
-        )
+        // This needs to run in the fixed update in sync with the physics, because otherwise it will run multiple times before the physics have even moved the player which means it will keep detecting the current value of the collidingEntities component multiple times before the physics start moving the entity from the ground for exemple with the dash velocity
+        .add_systems(FixedLast, dash_collision_system)
         .add_observer(end_dash)
         .add_observer(recieve_dash_event)
-        .add_observer(dash_collision)
+        // .add_observer(dash_collision)
         .init_resource::<RightClickStartPostion>()
         .init_resource::<MovementModifiers>()
         .register_type::<MovementModifiers>()
@@ -197,6 +196,7 @@ fn recieve_dash_event(
             // add a GravityScale component if missing
             commands.entity(dash_event.entity).insert(GravityScale(0.0));
         }
+
         commands.entity(dash_event.entity).insert(Dashing {
             direction: dash_event.direction,
             speed: dash_event.speed,
@@ -236,17 +236,37 @@ fn dashing_system(time: Res<Time>, query: Query<(Entity, &mut Dashing)>, mut com
 }
 fn dash_collision(
     collision: On<CollisionStart>,
-    qy: Query<Entity, With<Dashing>>,
+    dashers: Query<(), With<Dashing>>,
     mut commands: Commands,
 ) {
-    let entity_a = collision.collider1;
-    let entity_b = collision.collider2;
+    let a = collision.collider1;
+    let b = collision.collider2;
 
-    if qy.get(entity_a).is_ok() {
-        // entity_a is dashing
-        commands.trigger(EndDash { entity: entity_a });
-    } else if qy.get(entity_b).is_ok() {
-        // entity_b is dashing
-        commands.trigger(EndDash { entity: entity_b });
+    // Normalize to (dasher, other)
+    let pair = if dashers.contains(a) {
+        Some((a, b))
+    } else if dashers.contains(b) {
+        Some((b, a))
+    } else {
+        None
+    };
+
+    if let Some((dasher, other)) = pair {
+        // Run code for the dashing entity, with access to the other entity
+        // e.g. end dash and optionally check what `other` is
+        commands.trigger(EndDash { entity: dasher });
+
+        // Example: if you need to branch on the other entity's type, add queries:
+        // if enemies.contains(other) { … }
+        // if walls.contains(other) { … }
+    }
+}
+fn dash_collision_system(
+    qy: Query<(Entity, &CollidingEntities, &mut Dashing)>,
+    mut commands: Commands,
+) {
+    for (entity, colliding_entities, mut dashing) in qy {
+        // Check if there are any NEW collisions (not in initial set)
+        println!("{:?}", colliding_entities);
     }
 }

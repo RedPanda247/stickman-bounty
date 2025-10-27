@@ -1,8 +1,12 @@
 use avian2d::prelude::*;
+use bevy::ecs::schedule::ScheduleLabel;
 use bevy::{prelude::*, diagnostic::*};
 use bevy_egui::EguiPlugin;
+use bevy_egui::egui::frame;
 use bevy_framepace::{FramepaceSettings, Limiter};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use std::time::{Duration, Instant};
+use std::thread::sleep;
 
 mod level;
 use level::*;
@@ -22,15 +26,15 @@ fn main() {
             DefaultPlugins
                 .set(WindowPlugin {
                     primary_window: Some(Window {
-                        present_mode: bevy::window::PresentMode::AutoNoVsync,
+                        present_mode: bevy::window::PresentMode::Immediate,
                         ..default()
                     }),
                     ..default()
                 })
                 .set(ImagePlugin::default_nearest()),
-            // bevy_framepace::FramepacePlugin,
-            // EguiPlugin::default(),
-            // WorldInspectorPlugin::default(),
+            bevy_framepace::FramepacePlugin,
+            EguiPlugin::default(),
+            WorldInspectorPlugin::default(),
             PhysicsPlugins::default().set(PhysicsInterpolationPlugin::interpolate_all()),
             // PhysicsPlugins::default(),
         ))
@@ -44,8 +48,9 @@ fn main() {
             LoadingPlugin,
             GameDataPlugin,
         ))
-        .add_systems(Startup, startup)
+        .add_systems(Startup, (startup))
         .add_systems(Update, update)
+        // .add_systems(Last, frame_limiter_system)
         .run();
 }
 fn startup(mut commands: Commands, mut ev_load_game_state: MessageWriter<LoadGameState>) {
@@ -57,7 +62,10 @@ fn startup(mut commands: Commands, mut ev_load_game_state: MessageWriter<LoadGam
         loading_screen: LoadingScreen::Basic,
     });
 }
+fn limit_fps(mut frame_pace_settings: ResMut<FramepaceSettings>) {
+    frame_pace_settings.limiter = Limiter::from_framerate(144.0);
+}
 
 fn update(time: Res<Time>) {
-    println!("{}", (1. / time.delta_secs()).to_string());
+    // println!("{}", (1. / time.delta_secs()).to_string());
 }
