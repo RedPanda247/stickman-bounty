@@ -38,7 +38,6 @@ pub fn load_level_entities(commands: &mut Commands, level: LevelIdentifier, asse
                 commands.spawn((
                     Player,
                     CollisionEventsEnabled,
-                    CollidingEntities::default(),
                     CanDash,
                     GameEntity::LevelEntity,
                     Sprite {
@@ -51,7 +50,6 @@ pub fn load_level_entities(commands: &mut Commands, level: LevelIdentifier, asse
                     LockedAxes::ROTATION_LOCKED,
                     Transform::from_xyz(0., 400., 0.),
                     Collider::rectangle(player_size, player_size),
-                    CollisionMargin(0.),
                 ));
                 commands.spawn((
                     GameEntity::LevelEntity,
