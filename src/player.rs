@@ -105,6 +105,7 @@ pub struct Dashing {
     speed: f32,
     duration: f32,
     start_time: f32,
+    started_moving: bool,
 }
 
 #[derive(Resource, Default)]
@@ -202,6 +203,7 @@ fn recieve_dash_event(
             speed: dash_event.speed,
             duration: dash_event.duration,
             start_time: dash_event.start_time,
+            started_moving: false,
         });
     } else {
         warn!(
@@ -234,39 +236,21 @@ fn dashing_system(time: Res<Time>, query: Query<(Entity, &mut Dashing)>, mut com
         }
     }
 }
-fn dash_collision(
-    collision: On<CollisionStart>,
-    dashers: Query<(), With<Dashing>>,
-    mut commands: Commands,
-) {
-    let a = collision.collider1;
-    let b = collision.collider2;
-
-    // Normalize to (dasher, other)
-    let pair = if dashers.contains(a) {
-        Some((a, b))
-    } else if dashers.contains(b) {
-        Some((b, a))
-    } else {
-        None
-    };
-
-    if let Some((dasher, other)) = pair {
-        // Run code for the dashing entity, with access to the other entity
-        // e.g. end dash and optionally check what `other` is
-        commands.trigger(EndDash { entity: dasher });
-
-        // Example: if you need to branch on the other entity's type, add queries:
-        // if enemies.contains(other) { … }
-        // if walls.contains(other) { … }
-    }
-}
 fn dash_collision_system(
     qy: Query<(Entity, &CollidingEntities, &mut Dashing)>,
     mut commands: Commands,
 ) {
     for (entity, colliding_entities, mut dashing) in qy {
-        // Check if there are any NEW collisions (not in initial set)
-        println!("{:?}", colliding_entities);
+        // skip first because, add component add speed, next frame, move by speed, colliding entities still not updated ->
+        // check if we collided if not wait we think we collide with something here even though it is just the floor that 
+        // we were colliding with since before we started moving from the dash
+        if !dashing.started_moving {
+            dashing.started_moving = true;
+            continue;
+        }
+        if !colliding_entities.is_empty() {
+            commands.trigger(EndDash {entity});
+        }
+        
     }
 }

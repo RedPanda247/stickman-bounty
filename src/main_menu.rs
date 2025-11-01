@@ -61,6 +61,7 @@ fn grow_on_hover(
                 transform.scale = Vec3::splat(1.);
             }
         }
+        println!("button action");
     }
 }
 
@@ -102,7 +103,7 @@ pub fn load_main_menu_entities(commands: &mut Commands) {
                 align_items: AlignItems::Center,
                 ..default()
             },
-            
+            BorderColor::all(Color::WHITE),
             BorderRadius::MAX,
             BackgroundColor(Color::BLACK),
             children![(

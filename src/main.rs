@@ -49,14 +49,13 @@ fn main() {
 }
 fn startup(mut commands: Commands, mut ev_load_game_state: MessageWriter<LoadGameState>) {
     commands.spawn(Camera2d);
-    // main_menu::load_main_menu_entities(commands);
-    // ev_load_level_entities.write(LoadLevelEntities { level: 1 });
     ev_load_game_state.write(LoadGameState {
-        game_state_to_load: LoadableGameStates::Level(LevelIdentifier::Id(1)),
+        // game_state_to_load: LoadableGameStates::Level(LevelIdentifier::Id(1)),
+        game_state_to_load: LoadableGameStates::MainMenu,
         loading_screen: LoadingScreen::Basic,
     });
 }
 
 fn update(time: Res<Time>) {
-    println!("{}", (1. / time.delta_secs()).to_string());
+    // println!("{}", (1. / time.delta_secs()).to_string());
 }

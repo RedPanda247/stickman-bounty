@@ -38,6 +38,7 @@ pub fn load_level_entities(commands: &mut Commands, level: LevelIdentifier, asse
                 commands.spawn((
                     Player,
                     CollisionEventsEnabled,
+                    CollidingEntities::default(),
                     CanDash,
                     GameEntity::LevelEntity,
                     Sprite {
