@@ -242,15 +242,14 @@ fn dash_collision_system(
 ) {
     for (entity, colliding_entities, mut dashing) in qy {
         // skip first because, add component add speed, next frame, move by speed, colliding entities still not updated ->
-        // check if we collided if not wait we think we collide with something here even though it is just the floor that 
+        // check if we collided if not wait we think we collide with something here even though it is just the floor that
         // we were colliding with since before we started moving from the dash
         if !dashing.started_moving {
             dashing.started_moving = true;
             continue;
         }
         if !colliding_entities.is_empty() {
-            commands.trigger(EndDash {entity});
+            commands.trigger(EndDash { entity });
         }
-        
     }
 }

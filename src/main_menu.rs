@@ -45,23 +45,22 @@ fn main_menu_buttons(
 
 fn grow_on_hover(
     mut interaction_query: Query<
-        (&Interaction, &mut Transform),
+        (&Interaction, &mut UiTransform),
         (Changed<Interaction>, With<GrowOnHover>),
     >,
 ) {
     for (interaction, mut transform) in &mut interaction_query {
         match *interaction {
             Interaction::Pressed => {
-                transform.scale = Vec3::splat(1.);
+                transform.scale = Vec2::splat(1.);
             }
             Interaction::Hovered => {
-                transform.scale = Vec3::splat(1.1);
+                transform.scale = Vec2::splat(1.1);
             }
             Interaction::None => {
-                transform.scale = Vec3::splat(1.);
+                transform.scale = Vec2::splat(1.);
             }
         }
-        println!("button action");
     }
 }
 
@@ -89,10 +88,12 @@ pub fn load_main_menu_entities(commands: &mut Commands) {
         },
         Name::new("main menu ui root"),
         children![(
+            // Transform::default(),
             GrowOnHover,
             MainMenuButton::StartGame,
             Button,
             Node {
+                
                 width: Val::Auto,
                 height: Val::Auto,
                 padding: UiRect::all(Val::Px(10.)),
