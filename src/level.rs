@@ -45,7 +45,7 @@ pub fn load_level_entities(commands: &mut Commands, level: LevelIdentifier, asse
                     Sprite {
                         color: Color::srgb(0.0, 0.0, 0.0),
                         custom_size: Some(Vec2::new(player_size, player_size)),
-                        ..Default::default()
+                        ..default()
                     },
                     RigidBody::Dynamic,
                     LinearVelocity::ZERO,

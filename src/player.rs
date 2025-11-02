@@ -1,6 +1,7 @@
 use avian2d::prelude::*;
 use bevy::prelude::*;
 
+use crate::enemy::*;
 use crate::game_data::*;
 
 pub struct PlayerPlugin;
@@ -15,14 +16,17 @@ impl Plugin for PlayerPlugin {
                 right_click_start_position_system,
                 right_click_end_position_system,
                 dashing_system,
+                grapple_input_system,
             )
                 .run_if(in_state(GameState::PlayingLevel)),
         )
-        // This needs to run in the fixed update in sync with the physics, because otherwise it will run multiple times before the physics have even moved the player which means it will keep detecting the current value of the collidingEntities component multiple times before the physics start moving the entity from the ground for exemple with the dash velocity
         .add_systems(FixedLast, dash_collision_system)
+        .add_systems(FixedLast, fixed_attach_grappling_hook)
         .add_observer(end_dash)
         .add_observer(recieve_dash_event)
-        // .add_observer(dash_collision)
+        .add_observer(grapple_event_observer)
+        // Add this observer to fan out Swinging/PullingEnemy
+        .add_observer(hook_attachment_observer)
         .init_resource::<RightClickStartPostion>()
         .init_resource::<MovementModifiers>()
         .register_type::<MovementModifiers>()
@@ -264,6 +268,21 @@ struct StartGrapple {
 #[derive(Component)]
 pub struct CanGrapple;
 
+#[derive(Component)]
+struct Grappling; // marker: "I'm in a grapple flow"
+
+#[derive(Component)]
+struct Swinging {
+    anchor: Vec2,     // world position of the anchor point
+    rope_length: f32, // initial rope length
+}
+
+#[derive(Component)]
+struct PullingEnemy {
+    enemy: Entity,    // enemy being pulled
+    rope_length: f32, // initial rope length
+}
+
 #[derive(Resource)]
 struct GrappleKeybind(KeyCode);
 impl Default for GrappleKeybind {
@@ -280,28 +299,175 @@ fn grapple_input_system(
     camera_transform_qy: Query<&Transform, With<Camera>>,
 ) {
     if input.just_pressed(grapple_keybind.0) {
+        // get window
         let window = window_qy
             .single()
             .expect("Multiple Windows present, not compatible with current grapple implementation");
-        let mouse_window_pos = window
-            .cursor_position()
-            .expect("Couldn't get mouse position in window in grappling input system");
-        let camera_transform = camera_transform_qy
-            .single()
-            .expect("Found multiple cameras, incompatible with current grapple implementation");
+        // try to get raw mouse window position
+        if let Some(mouse_window_pos) = window.cursor_position() {
+            // invert y
+            let mouse_window_pos = vec2(mouse_window_pos.x, window.height() - mouse_window_pos.y);
+            // get camera transform
+            let camera_transform = camera_transform_qy
+                .single()
+                .expect("Found multiple cameras, incompatible with current grapple implementation");
 
-        // Convert camera position to Vec2 using truncate()
-        let camera_pos = camera_transform.translation.truncate();
+            // Convert camera position to Vec2 using truncate()
+            let camera_pos = camera_transform.translation.truncate();
 
-        // Calculate mouse world position (accounting for centered origin)
-        let window_size = Vec2::new(window.width(), window.height());
-        let mouse_world_pos = mouse_window_pos - window_size / 2.0 + camera_pos;
+            // Calculate mouse world position (accounting for centered origin)
+            let window_size = Vec2::new(window.width(), window.height());
+            let mouse_world_pos = mouse_window_pos - window_size / 2.0 + camera_pos;
 
-        for entity in player_qy.iter() {
-            commands.trigger(StartGrapple {
-                entity,
-                grapple_world_target: mouse_world_pos,
+            for entity in player_qy.iter() {
+                commands.trigger(StartGrapple {
+                    entity,
+                    grapple_world_target: mouse_world_pos,
+                });
+            }
+        }
+    }
+}
+fn grapple_event_observer(grapple_start_event: On<StartGrapple>, mut commands: Commands) {
+    commands
+        .entity(grapple_start_event.entity)
+        .insert(Grappling); // marker only
+
+    spawn_grapple(
+        &mut commands,
+        grapple_start_event.entity,
+        grapple_start_event.grapple_world_target.extend(0.),
+    );
+}
+const GRAPPLING_HOOK_SIZE: f32 = 20.;
+#[derive(Component)]
+struct GrapplingHook {
+    shooter_entity: Entity,
+    attached_to: Option<GrapplingHookAttachmentType>,
+}
+#[derive(Clone, Copy)]
+enum GrapplingHookAttachmentType {
+    Enemy(Entity),
+    World,
+}
+#[derive(EntityEvent)]
+struct GrappleAttachedEvent {
+    entity: Entity, // shooter entity
+    attachment_type: GrapplingHookAttachmentType,
+}
+
+fn spawn_grapple(commands: &mut Commands, shooter_entity: Entity, world_position: Vec3) {
+    commands.spawn((
+        GameEntity::LevelEntity,
+        GrapplingHook {
+            shooter_entity,
+            attached_to: None,
+        },
+        Transform::from_translation(world_position),
+        Sprite {
+            color: Color::WHITE,
+            custom_size: Some(Vec2::splat(GRAPPLING_HOOK_SIZE)),
+            ..default()
+        },
+        Collider::rectangle(GRAPPLING_HOOK_SIZE, GRAPPLING_HOOK_SIZE),
+        CollidingEntities::default(),
+    ));
+}
+
+fn fixed_attach_grappling_hook(
+    mut hook_qy: Query<(&mut GrapplingHook, &CollidingEntities, &Transform)>,
+    enemy_qy: Query<(), With<Enemy>>,
+    mut commands: Commands,
+) {
+    for (mut hook, colliding, _hook_tf) in hook_qy.iter_mut() {
+        if hook.attached_to.is_some() {
+            continue;
+        }
+
+        // Ignore the shooter itself
+        let mut hit_enemy: Option<Entity> = None;
+
+        for other in colliding
+            .iter()
+            .copied()
+            .filter(|e| *e != hook.shooter_entity)
+        {
+            if enemy_qy.contains(other) {
+                hit_enemy = Some(other);
+                break;
+            }
+        }
+
+        if let Some(enemy_entity) = hit_enemy {
+            hook.attached_to = Some(GrapplingHookAttachmentType::Enemy(enemy_entity));
+            commands.trigger(GrappleAttachedEvent {
+                entity: hook.shooter_entity,
+                attachment_type: GrapplingHookAttachmentType::Enemy(enemy_entity),
             });
+        } else {
+            hook.attached_to = Some(GrapplingHookAttachmentType::World);
+            commands.trigger(GrappleAttachedEvent {
+                entity: hook.shooter_entity,
+                attachment_type: GrapplingHookAttachmentType::World,
+            });
+        }
+    }
+}
+fn hook_attachment_observer(
+    grapple_attached_event: On<GrappleAttachedEvent>,
+    mut commands: Commands,
+    // for distances
+    transforms: Query<&Transform>,
+    // to find the hook entity for this shooter and get its world pos if needed
+    hook_q: Query<(&GrapplingHook, &Transform)>,
+) {
+    let shooter = grapple_attached_event.entity;
+
+    match grapple_attached_event.attachment_type {
+        GrapplingHookAttachmentType::World => {
+            // Find the hook belonging to this shooter to get the anchor position
+            if let (Ok(shooter_tf), Some((_hook, hook_tf))) = (
+                transforms.get(shooter),
+                hook_q.iter().find(|(h, _)| h.shooter_entity == shooter),
+            ) {
+                let anchor = hook_tf.translation.truncate();
+                let rope_length = shooter_tf.translation.truncate().distance(anchor);
+
+                commands.entity(shooter).insert(Swinging {
+                    anchor,
+                    rope_length,
+                });
+            }
+        }
+        GrapplingHookAttachmentType::Enemy(enemy) => {
+            if let (Ok(shooter_tf), Ok(enemy_tf)) = (transforms.get(shooter), transforms.get(enemy))
+            {
+                let rope_length = shooter_tf
+                    .translation
+                    .truncate()
+                    .distance(enemy_tf.translation.truncate());
+
+                commands
+                    .entity(shooter)
+                    .insert(PullingEnemy { enemy, rope_length });
+            }
+        }
+    }
+}
+fn grapple(qy: Query<(&Transform, &Grappling)>) {}
+#[derive(EntityEvent)]
+struct EndGrapple {
+    entity: Entity,
+}
+fn end_grapple_input(
+    input: Res<ButtonInput<KeyCode>>,
+    grapple_keybind: Res<GrappleKeybind>,
+    player_qy: Query<Entity, (With<Dashing>, With<Player>)>,
+    mut commands: Commands,
+) {
+    if input.just_released(grapple_keybind.0) {
+        for player in player_qy {
+            commands.trigger(EndGrapple { entity: player });
         }
     }
 }
