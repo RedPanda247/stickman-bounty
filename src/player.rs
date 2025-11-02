@@ -17,6 +17,8 @@ impl Plugin for PlayerPlugin {
                 right_click_end_position_system,
                 dashing_system,
                 grapple_input_system,
+                end_grapple_input,
+                x_force_to_all,
             )
                 .run_if(in_state(GameState::PlayingLevel)),
         )
@@ -25,6 +27,7 @@ impl Plugin for PlayerPlugin {
         .add_observer(end_dash)
         .add_observer(recieve_dash_event)
         .add_observer(grapple_event_observer)
+        .add_observer(end_grapple_event_observer)
         // Add this observer to fan out Swinging/PullingEnemy
         .add_observer(hook_attachment_observer)
         .init_resource::<RightClickStartPostion>()
@@ -273,12 +276,14 @@ struct Grappling; // marker: "I'm in a grapple flow"
 
 #[derive(Component)]
 struct Swinging {
+    hook_entity: Entity,
     anchor: Vec2,     // world position of the anchor point
     rope_length: f32, // initial rope length
 }
 
 #[derive(Component)]
 struct PullingEnemy {
+    hook_entity: Entity,
     enemy: Entity,    // enemy being pulled
     rope_length: f32, // initial rope length
 }
@@ -376,24 +381,23 @@ fn spawn_grapple(commands: &mut Commands, shooter_entity: Entity, world_position
 
 fn fixed_attach_grappling_hook(
     mut hook_qy: Query<(&mut GrapplingHook, &CollidingEntities, &Transform)>,
-    enemy_qy: Query<(), With<Enemy>>,
+    enemy_qy: Query<Entity, With<Enemy>>,
     mut commands: Commands,
 ) {
-    for (mut hook, colliding, _hook_tf) in hook_qy.iter_mut() {
+    for (mut hook, colliding_entities, _hook_tf) in hook_qy.iter_mut() {
         if hook.attached_to.is_some() {
             continue;
         }
 
-        // Ignore the shooter itself
         let mut hit_enemy: Option<Entity> = None;
 
-        for other in colliding
+        for collided_with in colliding_entities
             .iter()
             .copied()
             .filter(|e| *e != hook.shooter_entity)
         {
-            if enemy_qy.contains(other) {
-                hit_enemy = Some(other);
+            if enemy_qy.contains(collided_with) {
+                hit_enemy = Some(collided_with);
                 break;
             }
         }
@@ -419,37 +423,46 @@ fn hook_attachment_observer(
     // for distances
     transforms: Query<&Transform, With<RigidBody>>,
     // to find the hook entity for this shooter and get its world pos if needed
-    hook_q: Query<(&GrapplingHook, &Transform)>,
+    hook_q: Query<(Entity, &GrapplingHook, &Transform)>,
 ) {
     let shooter = grapple_attached_event.entity;
 
     match grapple_attached_event.attachment_type {
         GrapplingHookAttachmentType::World => {
             // Find the hook belonging to this shooter to get the anchor position
-            if let (Ok(shooter_tf), Some((_hook, hook_tf))) = (
+            if let (Ok(shooter_tf), Some((hook_entity, _hook, hook_tf))) = (
                 transforms.get(shooter),
-                hook_q.iter().find(|(h, _)| h.shooter_entity == shooter),
+                hook_q
+                    .iter()
+                    .find(|(entity, h, _)| h.shooter_entity == shooter),
             ) {
                 let anchor = hook_tf.translation.truncate();
                 let rope_length = shooter_tf.translation.truncate().distance(anchor);
 
                 commands.entity(shooter).insert(Swinging {
+                    hook_entity,
                     anchor,
                     rope_length,
                 });
             }
         }
         GrapplingHookAttachmentType::Enemy(enemy) => {
-            if let (Ok(shooter_tf), Ok(enemy_tf)) = (transforms.get(shooter), transforms.get(enemy))
-            {
+            if let (Ok(shooter_tf), Some((entity, _hoook, hook_tf))) = (
+                transforms.get(shooter),
+                hook_q
+                    .iter()
+                    .find(|(entity, h, _)| h.shooter_entity == shooter),
+            ) {
                 let rope_length = shooter_tf
                     .translation
                     .truncate()
-                    .distance(enemy_tf.translation.truncate());
+                    .distance(hook_tf.translation.truncate());
 
-                commands
-                    .entity(shooter)
-                    .insert(PullingEnemy { enemy, rope_length });
+                commands.entity(shooter).insert(PullingEnemy {
+                    hook_entity: entity,
+                    enemy,
+                    rope_length,
+                });
             }
         }
     }
@@ -462,7 +475,7 @@ struct EndGrapple {
 fn end_grapple_input(
     input: Res<ButtonInput<KeyCode>>,
     grapple_keybind: Res<GrappleKeybind>,
-    player_qy: Query<Entity, (With<Dashing>, With<Player>)>,
+    player_qy: Query<Entity, (With<Grappling>, With<Player>)>,
     mut commands: Commands,
 ) {
     if input.just_released(grapple_keybind.0) {
@@ -471,24 +484,45 @@ fn end_grapple_input(
         }
     }
 }
+const GRAPPLE_ENEMY_PULL_FORCE: f32 = 400000000.;
 fn end_grapple_event_observer(
     end_grapple_event: On<EndGrapple>,
     entity_pulling_enemy: Query<(Entity, &PullingEnemy, &Transform)>,
+    entities_swinging: Query<(Entity, &Swinging, &Transform)>,
     mut enemy_qy: Query<(Forces, &Transform), With<Enemy>>,
-    mut forces: Query<Forces>,
     mut commands: Commands,
 ) {
-    if let Ok((entity, pulling_enemy_component, transform)) = entity_pulling_enemy.get(end_grapple_event.entity) {
-        if let Ok((mut enemy_avian_forces, enemy_transform)) = enemy_qy.get(pulling_enemy_component.enemy) {
+    if let Ok((entity, pulling_enemy_component, transform)) =
+        entity_pulling_enemy.get(end_grapple_event.entity)
+    {
+        if let Ok((mut enemy_avian_forces, enemy_transform)) =
+            enemy_qy.get_mut(pulling_enemy_component.enemy)
+        {
             let translation_delta = transform.translation - enemy_transform.translation;
-            let normalized_delta = translation_delta.normalize_or_zero();
-            enemy_avian_forces.apply_force(Vec2::new(0.0, 10.0));
-            
+            let normalized_delta = translation_delta.normalize_or_zero().truncate();
+            let force = normalized_delta * GRAPPLE_ENEMY_PULL_FORCE;
+            println!("force {:?} applied to {:?}", force, pulling_enemy_component.enemy);
+            enemy_avian_forces.apply_force(force);
+            commands.entity(entity).remove::<Grappling>();
+            commands.entity(entity).remove::<PullingEnemy>();
+            commands
+                .entity(pulling_enemy_component.hook_entity)
+                .despawn();
         } else {
-            warn!("Enemy {:?} being pulled no longer has a RigidBody!", pulling_enemy_component.enemy);
+            warn!(
+                "Enemy {:?} being pulled no longer has a RigidBody!",
+                pulling_enemy_component.enemy
+            );
         }
+    } else if let Ok((entity, swinging, _)) = entities_swinging.get(end_grapple_event.entity) {
+        commands.entity(entity).remove::<Grappling>();
+        commands.entity(entity).remove::<Swinging>();
+        commands.entity(swinging.hook_entity).despawn();
     }
-    for force in forces {
-        
+}
+
+fn x_force_to_all(forces: Query<Forces>) {
+    for mut force in forces {
+        // force.apply_force(vec2(10000., 0.));
     }
 }
