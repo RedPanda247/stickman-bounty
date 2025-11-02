@@ -417,7 +417,7 @@ fn hook_attachment_observer(
     grapple_attached_event: On<GrappleAttachedEvent>,
     mut commands: Commands,
     // for distances
-    transforms: Query<&Transform>,
+    transforms: Query<&Transform, With<RigidBody>>,
     // to find the hook entity for this shooter and get its world pos if needed
     hook_q: Query<(&GrapplingHook, &Transform)>,
 ) {
@@ -469,5 +469,26 @@ fn end_grapple_input(
         for player in player_qy {
             commands.trigger(EndGrapple { entity: player });
         }
+    }
+}
+fn end_grapple_event_observer(
+    end_grapple_event: On<EndGrapple>,
+    entity_pulling_enemy: Query<(Entity, &PullingEnemy, &Transform)>,
+    mut enemy_qy: Query<(Forces, &Transform), With<Enemy>>,
+    mut forces: Query<Forces>,
+    mut commands: Commands,
+) {
+    if let Ok((entity, pulling_enemy_component, transform)) = entity_pulling_enemy.get(end_grapple_event.entity) {
+        if let Ok((mut enemy_avian_forces, enemy_transform)) = enemy_qy.get(pulling_enemy_component.enemy) {
+            let translation_delta = transform.translation - enemy_transform.translation;
+            let normalized_delta = translation_delta.normalize_or_zero();
+            enemy_avian_forces.apply_force(Vec2::new(0.0, 10.0));
+            
+        } else {
+            warn!("Enemy {:?} being pulled no longer has a RigidBody!", pulling_enemy_component.enemy);
+        }
+    }
+    for force in forces {
+        
     }
 }
