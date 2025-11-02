@@ -26,7 +26,8 @@ impl Plugin for PlayerPlugin {
         .init_resource::<RightClickStartPostion>()
         .init_resource::<MovementModifiers>()
         .register_type::<MovementModifiers>()
-        .insert_resource(MovementModifiers::default());
+        .insert_resource(MovementModifiers::default())
+        .init_resource::<GrappleKeybind>();
     }
 }
 
@@ -250,6 +251,57 @@ fn dash_collision_system(
         }
         if !colliding_entities.is_empty() {
             commands.trigger(EndDash { entity });
+        }
+    }
+}
+
+#[derive(EntityEvent)]
+struct StartGrapple {
+    entity: Entity,
+    grapple_world_target: Vec2,
+}
+
+#[derive(Component)]
+pub struct CanGrapple;
+
+#[derive(Resource)]
+struct GrappleKeybind(KeyCode);
+impl Default for GrappleKeybind {
+    fn default() -> Self {
+        GrappleKeybind(KeyCode::Space)
+    }
+}
+fn grapple_input_system(
+    input: Res<ButtonInput<KeyCode>>,
+    grapple_keybind: Res<GrappleKeybind>,
+    mut commands: Commands,
+    player_qy: Query<Entity, (With<CanGrapple>, With<Player>)>,
+    window_qy: Query<&Window>,
+    camera_transform_qy: Query<&Transform, With<Camera>>,
+) {
+    if input.just_pressed(grapple_keybind.0) {
+        let window = window_qy
+            .single()
+            .expect("Multiple Windows present, not compatible with current grapple implementation");
+        let mouse_window_pos = window
+            .cursor_position()
+            .expect("Couldn't get mouse position in window in grappling input system");
+        let camera_transform = camera_transform_qy
+            .single()
+            .expect("Found multiple cameras, incompatible with current grapple implementation");
+
+        // Convert camera position to Vec2 using truncate()
+        let camera_pos = camera_transform.translation.truncate();
+
+        // Calculate mouse world position (accounting for centered origin)
+        let window_size = Vec2::new(window.width(), window.height());
+        let mouse_world_pos = mouse_window_pos - window_size / 2.0 + camera_pos;
+
+        for entity in player_qy.iter() {
+            commands.trigger(StartGrapple {
+                entity,
+                grapple_world_target: mouse_world_pos,
+            });
         }
     }
 }

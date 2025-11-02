@@ -40,6 +40,7 @@ pub fn load_level_entities(commands: &mut Commands, level: LevelIdentifier, asse
                     CollisionEventsEnabled,
                     CollidingEntities::default(),
                     CanDash,
+                    CanGrapple,
                     GameEntity::LevelEntity,
                     Sprite {
                         color: Color::srgb(0.0, 0.0, 0.0),
