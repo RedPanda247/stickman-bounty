@@ -18,7 +18,7 @@ impl Plugin for PlayerPlugin {
                 dashing_system,
                 grapple_input_system,
                 end_grapple_input,
-                x_force_to_all,
+                hook_follow_enemy,
             )
                 .run_if(in_state(GameState::PlayingLevel)),
         )
@@ -468,6 +468,17 @@ fn hook_attachment_observer(
     }
 }
 fn grapple(qy: Query<(&Transform, &Grappling)>) {}
+fn hook_follow_enemy(hook_qy: Query<(&mut Transform, &GrapplingHook), Without<Enemy>>, enemy_transform_qy: Query<&Transform, With<Enemy>>) {
+    for (mut transform, hook) in hook_qy {
+        if let Some(attached_to) = hook.attached_to {
+            if let GrapplingHookAttachmentType::Enemy(enemy_entity) = attached_to {
+                if let Ok(enemy_transform) = enemy_transform_qy.get(enemy_entity) {
+                    transform.translation = enemy_transform.translation;
+                }
+            }
+        }
+    }
+}
 #[derive(EntityEvent)]
 struct EndGrapple {
     entity: Entity,
@@ -484,7 +495,7 @@ fn end_grapple_input(
         }
     }
 }
-const GRAPPLE_ENEMY_PULL_FORCE: f32 = 400000000.;
+const GRAPPLE_ENEMY_PULL_FORCE: f32 = 4000000.;
 fn end_grapple_event_observer(
     end_grapple_event: On<EndGrapple>,
     entity_pulling_enemy: Query<(Entity, &PullingEnemy, &Transform)>,
@@ -501,8 +512,7 @@ fn end_grapple_event_observer(
             let translation_delta = transform.translation - enemy_transform.translation;
             let normalized_delta = translation_delta.normalize_or_zero().truncate();
             let force = normalized_delta * GRAPPLE_ENEMY_PULL_FORCE;
-            println!("force {:?} applied to {:?}", force, pulling_enemy_component.enemy);
-            enemy_avian_forces.apply_force(force);
+            enemy_avian_forces.apply_linear_impulse(force);
             commands.entity(entity).remove::<Grappling>();
             commands.entity(entity).remove::<PullingEnemy>();
             commands
@@ -518,11 +528,5 @@ fn end_grapple_event_observer(
         commands.entity(entity).remove::<Grappling>();
         commands.entity(entity).remove::<Swinging>();
         commands.entity(swinging.hook_entity).despawn();
-    }
-}
-
-fn x_force_to_all(forces: Query<Forces>) {
-    for mut force in forces {
-        // force.apply_force(vec2(10000., 0.));
     }
 }
