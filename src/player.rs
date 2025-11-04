@@ -24,6 +24,10 @@ impl Plugin for PlayerPlugin {
         )
         .add_systems(FixedLast, dash_collision_system)
         .add_systems(FixedLast, fixed_attach_grappling_hook)
+        .add_systems(
+            FixedUpdate,
+            (grappling_hook_swinging_spring_force_system_fixed, damp_hook_spring_oscillation),
+        )
         .add_observer(end_dash)
         .add_observer(recieve_dash_event)
         .add_observer(grapple_event_observer)
@@ -34,7 +38,8 @@ impl Plugin for PlayerPlugin {
         .init_resource::<MovementModifiers>()
         .register_type::<MovementModifiers>()
         .insert_resource(MovementModifiers::default())
-        .init_resource::<GrappleKeybind>();
+        .init_resource::<GrappleKeybind>()
+        .init_resource::<GrapplingHookConfig>();
     }
 }
 
@@ -277,8 +282,9 @@ struct Grappling; // marker: "I'm in a grapple flow"
 #[derive(Component)]
 struct Swinging {
     hook_entity: Entity,
-    anchor: Vec2,     // world position of the anchor point
-    rope_length: f32, // initial rope length
+    anchor: Vec2, // world position of the anchor point
+    rope_rest_length: f32,
+    previous_distance_from_hook: Option<f32>,
 }
 
 #[derive(Component)]
@@ -432,9 +438,7 @@ fn hook_attachment_observer(
             // Find the hook belonging to this shooter to get the anchor position
             if let (Ok(shooter_tf), Some((hook_entity, _hook, hook_tf))) = (
                 transforms.get(shooter),
-                hook_q
-                    .iter()
-                    .find(|(entity, h, _)| h.shooter_entity == shooter),
+                hook_q.iter().find(|(_, h, _)| h.shooter_entity == shooter),
             ) {
                 let anchor = hook_tf.translation.truncate();
                 let rope_length = shooter_tf.translation.truncate().distance(anchor);
@@ -442,16 +446,15 @@ fn hook_attachment_observer(
                 commands.entity(shooter).insert(Swinging {
                     hook_entity,
                     anchor,
-                    rope_length,
+                    rope_rest_length: rope_length,
+                    previous_distance_from_hook: None,
                 });
             }
         }
         GrapplingHookAttachmentType::Enemy(enemy) => {
             if let (Ok(shooter_tf), Some((entity, _hoook, hook_tf))) = (
                 transforms.get(shooter),
-                hook_q
-                    .iter()
-                    .find(|(entity, h, _)| h.shooter_entity == shooter),
+                hook_q.iter().find(|(_, h, _)| h.shooter_entity == shooter),
             ) {
                 let rope_length = shooter_tf
                     .translation
@@ -467,8 +470,62 @@ fn hook_attachment_observer(
         }
     }
 }
-fn grapple(qy: Query<(&Transform, &Grappling)>) {}
-fn hook_follow_enemy(hook_qy: Query<(&mut Transform, &GrapplingHook), Without<Enemy>>, enemy_transform_qy: Query<&Transform, With<Enemy>>) {
+const DEFAULT_GRAPPLING_HOOK_SPRING_FORCE: f32 = 100_000.0;
+const DEFAULT_GRAPPLING_HOOK_DAMPENING: f32 = 1_000_000.0;
+
+#[derive(Reflect, Resource)]
+#[reflect(Resource)]
+pub struct GrapplingHookConfig {
+    spring_force: f32,
+    spring_dampening: f32,
+}
+
+impl Default for GrapplingHookConfig {
+    fn default() -> Self {
+        GrapplingHookConfig {
+            spring_force: DEFAULT_GRAPPLING_HOOK_SPRING_FORCE,
+            spring_dampening: DEFAULT_GRAPPLING_HOOK_DAMPENING,
+        }
+    }
+}
+
+fn grappling_hook_swinging_spring_force_system_fixed(
+    qy: Query<(Forces, &Transform, &Swinging)>,
+    time: Res<Time>,
+    grappling_hook_spring_force: Res<GrapplingHookConfig>,
+) {
+    for (mut force, transform, swinging) in qy {
+        let distance_to_hook = transform.translation.truncate().distance(swinging.anchor);
+        let spring_discomfort = distance_to_hook - swinging.rope_rest_length;
+        let spring_force_1d = spring_discomfort * grappling_hook_spring_force.spring_force;
+        let direction_to_hook = (swinging.anchor - transform.translation.truncate()).normalize();
+        let spring_force_on_entity = direction_to_hook * spring_force_1d;
+        force.apply_linear_impulse(spring_force_on_entity * time.delta_secs());
+    }
+}
+
+fn damp_hook_spring_oscillation(
+    qy: Query<(Forces, &Transform, &mut Swinging)>,
+    time: Res<Time>,
+    grappling_hook_config: Res<GrapplingHookConfig>,
+) {
+    for (mut force, transform, mut swinging) in qy {
+        let distance_to_hook = transform.translation.truncate().distance(swinging.anchor);
+        if let Some(previous_distance_from_hook) = swinging.previous_distance_from_hook {
+            let delta_distance_to_hook = distance_to_hook - previous_distance_from_hook;
+            let direction_to_hook = (swinging.anchor - transform.translation.truncate()).normalize();
+            let spring_dampening_force_1d = delta_distance_to_hook * grappling_hook_config.spring_dampening;
+            let spring_dampening_force_on_entity = spring_dampening_force_1d * direction_to_hook;
+            force.apply_linear_impulse(spring_dampening_force_on_entity * time.delta_secs());
+        }
+        swinging.previous_distance_from_hook = Some(distance_to_hook);
+    }
+}
+
+fn hook_follow_enemy(
+    hook_qy: Query<(&mut Transform, &GrapplingHook), Without<Enemy>>,
+    enemy_transform_qy: Query<&Transform, With<Enemy>>,
+) {
     for (mut transform, hook) in hook_qy {
         if let Some(attached_to) = hook.attached_to {
             if let GrapplingHookAttachmentType::Enemy(enemy_entity) = attached_to {
