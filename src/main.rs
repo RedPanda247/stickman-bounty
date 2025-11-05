@@ -16,6 +16,9 @@ mod game_data;
 use game_data::*;
 mod enemy;
 
+mod abilities;
+use abilities::AbilitiesPlugin;
+
 fn main() {
     App::new()
         .add_plugins((
@@ -42,8 +45,9 @@ fn main() {
             MainMenuPlugin,
             LoadingPlugin,
             GameDataPlugin,
+            AbilitiesPlugin,
         ))
-        .add_systems(Startup, (startup))
+        .add_systems(Startup, startup)
         .add_systems(Update, update)
         .run();
 }

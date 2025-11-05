@@ -4,6 +4,7 @@ use avian2d::prelude::*;
 use crate::enemy::*;
 use crate::game_data::*;
 use crate::player::*;
+use crate::abilities::*;
 
 pub struct LevelPlugin;
 impl Plugin for LevelPlugin {
