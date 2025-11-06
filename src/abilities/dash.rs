@@ -10,8 +10,12 @@ impl Plugin for DashPlugin {
             .add_observer(end_dash)
             .add_systems(
                 FixedUpdate,
-                dashing_system.run_if(in_state(GameState::PlayingLevel)),
-            );
+                (dashing_system).run_if(in_state(GameState::PlayingLevel)),
+            )
+            .add_systems(
+                FixedLast,
+                (dash_collision_system).run_if(in_state(GameState::PlayingLevel)),
+            );;
     }
 }
 

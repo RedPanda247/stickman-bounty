@@ -19,6 +19,8 @@ mod enemy;
 mod abilities;
 use abilities::AbilitiesPlugin;
 
+use crate::enemy::EnemyPlugin;
+
 fn main() {
     App::new()
         .add_plugins((
@@ -36,7 +38,7 @@ fn main() {
             WorldInspectorPlugin::default(),
             PhysicsPlugins::default().set(PhysicsInterpolationPlugin::interpolate_all()),
         ))
-        .insert_resource(FramepaceSettings{ limiter: Limiter::from_framerate(144.)})
+        // .insert_resource(FramepaceSettings{ limiter: Limiter::from_framerate(144.)})
         .insert_resource(Gravity(Vec2::NEG_Y * 3000.0))
         // Project plugins
         .add_plugins((
@@ -46,6 +48,7 @@ fn main() {
             LoadingPlugin,
             GameDataPlugin,
             AbilitiesPlugin,
+            EnemyPlugin,
         ))
         .add_systems(Startup, startup)
         .add_systems(Update, update)

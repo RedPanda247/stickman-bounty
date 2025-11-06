@@ -1,10 +1,10 @@
-use bevy::prelude::*;
 use avian2d::prelude::*;
+use bevy::prelude::*;
 
+use crate::abilities::*;
 use crate::enemy::*;
 use crate::game_data::*;
 use crate::player::*;
-use crate::abilities::*;
 
 pub struct LevelPlugin;
 impl Plugin for LevelPlugin {
@@ -28,7 +28,11 @@ pub fn ev_load_level_entities(
     }
 }
 
-pub fn load_level_entities(commands: &mut Commands, level: LevelIdentifier, asset_server: &AssetServer) {
+pub fn load_level_entities(
+    commands: &mut Commands,
+    level: LevelIdentifier,
+    asset_server: &AssetServer,
+) {
     match level {
         LevelIdentifier::Id(id) => {
             if id == 1 {
@@ -60,7 +64,11 @@ pub fn load_level_entities(commands: &mut Commands, level: LevelIdentifier, asse
                         color: Color::srgb(0.0, 0.0, 0.0),
                         custom_size: Some(Vec2::new(ground_width, ground_height)),
                         image: asset_server.load("example.png"),
-                        image_mode: SpriteImageMode::Tiled { tile_x: true, tile_y: true, stretch_value: 1. },
+                        image_mode: SpriteImageMode::Tiled {
+                            tile_x: true,
+                            tile_y: true,
+                            stretch_value: 1.,
+                        },
                         ..Default::default()
                     },
                     RigidBody::Static,
@@ -73,6 +81,15 @@ pub fn load_level_entities(commands: &mut Commands, level: LevelIdentifier, asse
                     CharacterBundle {
                         size: 50.,
                         position: vec3(500., 700., 0.),
+                        color: Color::srgb(8.0, 0.0, 0.0),
+                    },
+                    (Enemy),
+                );
+                spawn_character(
+                    commands,
+                    CharacterBundle {
+                        size: 50.,
+                        position: vec3(700., 700., 0.),
                         color: Color::srgb(8.0, 0.0, 0.0),
                     },
                     (Enemy),

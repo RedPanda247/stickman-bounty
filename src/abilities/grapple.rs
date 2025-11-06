@@ -16,6 +16,7 @@ impl Plugin for GrapplePlugin {
             .init_resource::<GrapplingHookConfig>()
             .add_observer(grapple_event_observer)
             .add_observer(hook_attachment_observer)
+            .add_observer(end_grapple_event_observer)
             
             .add_systems(
                 FixedUpdate,
@@ -262,4 +263,40 @@ fn hook_follow_enemy(
 #[derive(EntityEvent)]
 pub struct EndGrapple {
     pub entity: Entity,
+}
+
+const GRAPPLE_ENEMY_PULL_FORCE: f32 = 4000000.;
+fn end_grapple_event_observer(
+    end_grapple_event: On<EndGrapple>,
+    entity_pulling_enemy: Query<(Entity, &PullingEnemy, &Transform)>,
+    entities_swinging: Query<(Entity, &Swinging, &Transform)>,
+    mut enemy_qy: Query<(Forces, &Transform), With<Enemy>>,
+    mut commands: Commands,
+) {
+    if let Ok((entity, pulling_enemy_component, transform)) =
+        entity_pulling_enemy.get(end_grapple_event.entity)
+    {
+        if let Ok((mut enemy_avian_forces, enemy_transform)) =
+            enemy_qy.get_mut(pulling_enemy_component.enemy)
+        {
+            let translation_delta = transform.translation - enemy_transform.translation;
+            let normalized_delta = translation_delta.normalize_or_zero().truncate();
+            let force = normalized_delta * GRAPPLE_ENEMY_PULL_FORCE;
+            enemy_avian_forces.apply_linear_impulse(force);
+            commands.entity(entity).remove::<Grappling>();
+            commands.entity(entity).remove::<PullingEnemy>();
+            commands
+                .entity(pulling_enemy_component.hook_entity)
+                .despawn();
+        } else {
+            warn!(
+                "Enemy {:?} being pulled no longer has a RigidBody!",
+                pulling_enemy_component.enemy
+            );
+        }
+    } else if let Ok((entity, swinging, _)) = entities_swinging.get(end_grapple_event.entity) {
+        commands.entity(entity).remove::<Grappling>();
+        commands.entity(entity).remove::<Swinging>();
+        commands.entity(swinging.hook_entity).despawn();
+    }
 }
