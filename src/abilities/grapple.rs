@@ -21,13 +21,14 @@ impl Plugin for GrapplePlugin {
             .add_systems(
                 FixedUpdate,
                 (
-                    fixed_attach_grappling_hook,
+                    
                     grappling_hook_swinging_spring_force_system_fixed,
                     damp_hook_spring_oscillation,
                     hook_follow_enemy,
                 )
                     .run_if(in_state(GameState::PlayingLevel)),
-            );
+            )
+            .add_systems(FixedLast, (fixed_attach_grappling_hook,));
     }
 }
 
@@ -122,6 +123,8 @@ fn fixed_attach_grappling_hook(
         }
 
         let mut hit_enemy: Option<Entity> = None;
+
+        dbg!(colliding_entities);
 
         for collided_with in colliding_entities
             .iter()
@@ -265,7 +268,7 @@ pub struct EndGrapple {
     pub entity: Entity,
 }
 
-const GRAPPLE_ENEMY_PULL_FORCE: f32 = 4000000.;
+const GRAPPLE_ENEMY_PULL_FORCE: f32 = 3000000.;
 fn end_grapple_event_observer(
     end_grapple_event: On<EndGrapple>,
     entity_pulling_enemy: Query<(Entity, &PullingEnemy, &Transform)>,

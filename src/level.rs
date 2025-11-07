@@ -36,7 +36,7 @@ pub fn load_level_entities(
     match level {
         LevelIdentifier::Id(id) => {
             if id == 1 {
-                let player_size = 20.;
+                let default_character_size = 40.;
                 let ground_height = 100.;
                 let ground_width = 10000.;
 
@@ -49,14 +49,14 @@ pub fn load_level_entities(
                     GameEntity::LevelEntity,
                     Sprite {
                         color: Color::srgb(0.0, 0.0, 0.0),
-                        custom_size: Some(Vec2::new(player_size, player_size)),
+                        custom_size: Some(Vec2::new(default_character_size, default_character_size)),
                         ..default()
                     },
                     RigidBody::Dynamic,
                     LinearVelocity::ZERO,
                     LockedAxes::ROTATION_LOCKED,
                     Transform::from_xyz(0., 400., 0.),
-                    Collider::rectangle(player_size, player_size),
+                    Collider::rectangle(default_character_size, default_character_size),
                 ));
                 commands.spawn((
                     GameEntity::LevelEntity,
@@ -79,7 +79,7 @@ pub fn load_level_entities(
                 spawn_character(
                     commands,
                     CharacterBundle {
-                        size: 50.,
+                        size: default_character_size,
                         position: vec3(500., 700., 0.),
                         color: Color::srgb(8.0, 0.0, 0.0),
                     },
@@ -88,7 +88,7 @@ pub fn load_level_entities(
                 spawn_character(
                     commands,
                     CharacterBundle {
-                        size: 50.,
+                        size: default_character_size,
                         position: vec3(700., 700., 0.),
                         color: Color::srgb(8.0, 0.0, 0.0),
                     },
