@@ -62,6 +62,23 @@ pub fn load_level_entities(
                     GameEntity::LevelEntity,
                     Sprite {
                         color: Color::srgb(0.0, 0.0, 0.0),
+                        custom_size: Some(Vec2::new(50., 800.)),
+                        image: asset_server.load("example.png"),
+                        image_mode: SpriteImageMode::Tiled {
+                            tile_x: true,
+                            tile_y: true,
+                            stretch_value: 1.,
+                        },
+                        ..Default::default()
+                    },
+                    RigidBody::Static,
+                    Transform::from_xyz(200., 0., 0.),
+                    Collider::rectangle(50., 800.),
+                ));
+                commands.spawn((
+                    GameEntity::LevelEntity,
+                    Sprite {
+                        color: Color::srgb(0.0, 0.0, 0.0),
                         custom_size: Some(Vec2::new(ground_width, ground_height)),
                         image: asset_server.load("example.png"),
                         image_mode: SpriteImageMode::Tiled {
