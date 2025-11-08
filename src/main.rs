@@ -15,6 +15,7 @@ use loading::*;
 mod game_data;
 use game_data::*;
 mod enemy;
+mod projectiles;
 
 mod abilities;
 use abilities::AbilitiesPlugin;
