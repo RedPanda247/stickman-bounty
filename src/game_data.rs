@@ -32,6 +32,11 @@ pub enum LevelIdentifier {
 }
 
 #[derive(Component)]
+pub struct Defense(f32);
+#[derive(Component)]
+pub struct Health(f32);
+
+#[derive(Component)]
 pub struct CharacterBundle {
     pub size: f32,
     pub position: Vec3,
