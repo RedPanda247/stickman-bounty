@@ -35,6 +35,8 @@ pub enum LevelIdentifier {
 pub struct Defense(f32);
 #[derive(Component)]
 pub struct Health(f32);
+#[derive(Component)]
+pub struct CanBeHitByProjectile;
 
 #[derive(Component)]
 pub struct CharacterBundle {
@@ -61,6 +63,7 @@ pub fn spawn_character(
     commands
         .spawn((
             GameEntity::LevelEntity,
+            CanBeHitByProjectile,
             Sprite {
                 color: bundle.color,
                 custom_size: Some(Vec2::new(bundle.size, bundle.size)),

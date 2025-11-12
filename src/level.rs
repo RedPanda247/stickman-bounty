@@ -42,6 +42,7 @@ pub fn load_level_entities(
 
                 commands.spawn((
                     Player,
+                    CanBeHitByProjectile,
                     CollisionEventsEnabled,
                     CollidingEntities::default(),
                     CanDash,

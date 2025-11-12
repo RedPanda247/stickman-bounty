@@ -124,8 +124,6 @@ fn fixed_attach_grappling_hook(
 
         let mut hit_enemy: Option<Entity> = None;
 
-        dbg!(colliding_entities);
-
         for collided_with in colliding_entities
             .iter()
             .copied()

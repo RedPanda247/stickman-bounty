@@ -1,9 +1,11 @@
 use avian2d::prelude::*;
+use bevy::ecs::relationship::RelationshipSourceCollection;
 use bevy::prelude::*;
 
+use crate::abilities::*;
 use crate::enemy::*;
 use crate::game_data::*;
-use crate::abilities::*;
+use crate::projectiles::*;
 
 pub struct PlayerPlugin;
 
@@ -18,9 +20,11 @@ impl Plugin for PlayerPlugin {
                 right_click_end_position_system,
                 grapple_input_system,
                 end_grapple_input,
+                player_shoot_input,
             )
                 .run_if(in_state(GameState::PlayingLevel)),
         )
+        .add_observer(player_shoot_event)
         // Add this observer to fan out Swinging/PullingEnemy
         .init_resource::<RightClickStartPostion>()
         .init_resource::<MovementModifiers>()
@@ -31,8 +35,59 @@ impl Plugin for PlayerPlugin {
     }
 }
 
+const PLAYER_PROJECTILE_DAMEGE: f32 = 20.;
 
+#[derive(Event)]
+struct PlayerShootEvent;
 
+fn player_shoot_input(mouse_input: Res<ButtonInput<MouseButton>>, mut commands: Commands) {
+    if mouse_input.just_released(MouseButton::Left) {
+        commands.trigger(PlayerShootEvent);
+    }
+}
+
+fn player_shoot_event(
+    _shoot_event: On<PlayerShootEvent>,
+    player_qy: Query<(Entity, &Transform), With<Player>>,
+    window_qy: Query<&Window>,
+    camera_transform_qy: Query<(&Transform), With<Camera>>,
+    mut commands: Commands,
+) {
+    // get window
+    let window = window_qy
+        .single()
+        .expect("Multiple Windows present, not compatible with current grapple implementation");
+    // try to get raw mouse window position
+    if let Some(mouse_window_pos) = window.cursor_position() {
+        // invert y
+        let mouse_window_pos = vec2(mouse_window_pos.x, window.height() - mouse_window_pos.y);
+        // get camera transform
+        let camera_transform = camera_transform_qy
+            .single()
+            .expect("Found multiple cameras, incompatible with current grapple implementation");
+
+        // Convert camera position to Vec2 using truncate()
+        let camera_pos = camera_transform.translation.truncate();
+
+        // Calculate mouse world position (accounting for centered origin)
+        let window_size = Vec2::new(window.width(), window.height());
+        let mouse_world_pos = mouse_window_pos - window_size / 2.0 + camera_pos;
+
+        for (entity, transform) in player_qy.iter() {
+            let direction = (mouse_world_pos - transform.translation.truncate()).normalize();
+            let damage = PLAYER_PROJECTILE_DAMEGE;
+            spawn_projectile(
+                &mut commands,
+                vec2(transform.translation.x, transform.translation.y + 100.).extend(0.),
+                direction,
+                50.,
+                damage,
+                1.,
+                vec![entity],
+            );
+        }
+    }
+}
 
 #[derive(Reflect, Resource)]
 #[reflect(Resource)]
@@ -158,10 +213,6 @@ fn right_click_end_position_system(
         }
     }
 }
-
-
-
-
 
 fn grapple_input_system(
     input: Res<ButtonInput<KeyCode>>,

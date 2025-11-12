@@ -20,7 +20,7 @@ mod projectiles;
 mod abilities;
 use abilities::AbilitiesPlugin;
 
-use crate::enemy::EnemyPlugin;
+use crate::{enemy::EnemyPlugin, projectiles::ProjectilesPlugin};
 
 fn main() {
     App::new()
@@ -50,6 +50,7 @@ fn main() {
             GameDataPlugin,
             AbilitiesPlugin,
             EnemyPlugin,
+            ProjectilesPlugin,
         ))
         .add_systems(Startup, startup)
         .add_systems(Update, update)
