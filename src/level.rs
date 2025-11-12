@@ -43,6 +43,7 @@ pub fn load_level_entities(
                 commands.spawn((
                     Player,
                     CanBeHitByProjectile,
+                    Health(100.),
                     CollisionEventsEnabled,
                     CollidingEntities::default(),
                     CanDash,
@@ -50,7 +51,10 @@ pub fn load_level_entities(
                     GameEntity::LevelEntity,
                     Sprite {
                         color: Color::srgb(0.0, 0.0, 0.0),
-                        custom_size: Some(Vec2::new(default_character_size, default_character_size)),
+                        custom_size: Some(Vec2::new(
+                            default_character_size,
+                            default_character_size,
+                        )),
                         ..default()
                     },
                     RigidBody::Dynamic,
@@ -102,7 +106,7 @@ pub fn load_level_entities(
                         position: vec3(500., 700., 0.),
                         color: Color::srgb(8.0, 0.0, 0.0),
                     },
-                    (Enemy),
+                    (Enemy, Health(100.)),
                 );
                 spawn_character(
                     commands,
@@ -111,8 +115,57 @@ pub fn load_level_entities(
                         position: vec3(700., 700., 0.),
                         color: Color::srgb(8.0, 0.0, 0.0),
                     },
-                    (Enemy),
+                    (Enemy, Health(100.)),
                 );
+                commands.spawn((
+                    GameEntity::LevelEntity,
+                    Node {
+                        width: Val::Percent(100.0),
+                        height: Val::Percent(100.0),
+                        align_items: AlignItems::End,
+                        align_content: AlignContent::SpaceAround,
+                        justify_content: JustifyContent::Start,
+                        flex_direction: FlexDirection::Row,
+                        ..default()
+                    },
+                    children![(
+                        Node {
+                            width: Val::Auto,
+                            height: Val::Auto,
+                            padding: UiRect::all(Val::Px(10.)),
+                            border: UiRect::all(Val::Px(5.0)),
+                            // horizontally center child text
+                            justify_content: JustifyContent::Center,
+                            // vertically center child text
+                            align_items: AlignItems::Center,
+                            ..default()
+                        },
+                        BorderColor::all(Color::WHITE),
+                        BorderRadius::MAX,
+                        BackgroundColor(Color::BLACK),
+                        children![
+                            (
+                                Text::new("Health: "),
+                                TextFont {
+                                    font_size: 33.0,
+                                    ..default()
+                                },
+                                TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                                TextShadow::default(),
+                            ),
+                            (
+                                PlayerHealthUi,
+                                Text::new(""),
+                                TextFont {
+                                    font_size: 33.0,
+                                    ..default()
+                                },
+                                TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                                TextShadow::default(),
+                            )
+                        ],
+                    )],
+                ));
             }
         }
     }

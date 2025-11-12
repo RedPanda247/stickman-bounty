@@ -21,6 +21,7 @@ impl Plugin for PlayerPlugin {
                 grapple_input_system,
                 end_grapple_input,
                 player_shoot_input,
+                player_health_ui,
             )
                 .run_if(in_state(GameState::PlayingLevel)),
         )
@@ -34,6 +35,18 @@ impl Plugin for PlayerPlugin {
         .init_resource::<GrapplingHookConfig>();
     }
 }
+
+#[derive(Component)]
+pub struct PlayerHealthUi;
+
+fn player_health_ui(mut ui_qy: Query<&mut Text, With<PlayerHealthUi>>, player_qy: Query<&Health, With<Player>>) {
+    if let Ok(player_health) = player_qy.single() {
+        for mut health_ui in ui_qy.iter_mut() {
+            health_ui.0 = player_health.0.round().to_string();
+        }
+    }
+}
+
 
 const PLAYER_PROJECTILE_DAMEGE: f32 = 20.;
 

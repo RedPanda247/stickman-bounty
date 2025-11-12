@@ -201,6 +201,9 @@ fn projectile_hit_event(
     // Deal damage to hit entity if it has a Health component
     if let Ok(mut health) = health_qy.get_mut(hit_entity) {
         health.0 -= projectile_hit_event.damage;
+        if health.0 < 0. {
+            health.0 = 0.;
+        }
     }
     commands
         .entity(projectile_entity)

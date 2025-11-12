@@ -5,6 +5,10 @@ use crate::player::Player;
 
 #[derive(Component)]
 pub struct Enemy;
+#[derive(Component)]
+struct ReadyToShoot;
+#[derive(Component)]
+pub struct ShootCooldown(pub f32);
 
 #[derive(Component)]
 pub struct EnemySeesPlayer;
@@ -57,5 +61,16 @@ fn fixed_look_for_player(
                 commands.entity(enemy_entity).remove::<EnemySeesPlayer>();
             }
         }
+    }
+}
+fn shoot_player(
+    enemy_qy: Query<(&Transform), (With<Enemy>, With<ReadyToShoot>)>,
+    player_qy: Query<&Transform, With<Player>>,
+    mut commands: Commands,
+) {
+    if let Ok(player_transform) = player_qy.single() {
+        
+    } else {
+        warn!("multiple player entities");
     }
 }
