@@ -61,6 +61,7 @@ pub fn load_level_entities(
                 ));
                 commands.spawn((
                     GameEntity::LevelEntity,
+                    CanBeHitByProjectile,
                     Sprite {
                         color: Color::srgb(0.0, 0.0, 0.0),
                         custom_size: Some(Vec2::new(50., 800.)),

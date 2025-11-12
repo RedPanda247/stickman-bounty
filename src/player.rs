@@ -78,11 +78,12 @@ fn player_shoot_event(
             let damage = PLAYER_PROJECTILE_DAMEGE;
             spawn_projectile(
                 &mut commands,
-                vec2(transform.translation.x, transform.translation.y + 100.).extend(0.),
+                // vec2(transform.translation.x, transform.translation.y + 100.).extend(0.),
+                transform.translation,
                 direction,
-                50.,
+                1000.,
                 damage,
-                1.,
+                1_000_000.,
                 vec![entity],
             );
         }

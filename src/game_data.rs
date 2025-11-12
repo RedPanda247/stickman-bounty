@@ -32,9 +32,9 @@ pub enum LevelIdentifier {
 }
 
 #[derive(Component)]
-pub struct Defense(f32);
+pub struct Defense(pub f32);
 #[derive(Component)]
-pub struct Health(f32);
+pub struct Health(pub f32);
 #[derive(Component)]
 pub struct CanBeHitByProjectile;
 

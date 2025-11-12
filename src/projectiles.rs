@@ -7,10 +7,10 @@ pub struct ProjectilesPlugin;
 
 impl Plugin for ProjectilesPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(FixedLast, spawn_collisions_continious)
+        app.add_systems(FixedLast, spawn_collisions_continious)
             .add_observer(spawn_collisions)
-            .add_observer(projectile_collision);
+            .add_observer(projectile_collision)
+            .add_observer(projectile_hit_event);
     }
 }
 
@@ -32,20 +32,23 @@ pub fn spawn_projectile(
     knockback: f32,
     disgard_initial_collision_with: Vec<Entity>,
 ) {
-    let projectile_size = 10.;
+    let projectile_size = 5.;
     commands.spawn((
+        // Constant projectile components
         GameEntity::LevelEntity,
+        RigidBody::Kinematic,
+        GravityScale(0.),
+        CollidingEntities::default(),
+        CollisionEventsEnabled,
+        Collider::rectangle(projectile_size, projectile_size),
+        Sensor,
+        // Dynamically decided components
         Projectile { damage, knockback },
         ProjectileDisgardInitialSpawnCollisionWith(disgard_initial_collision_with),
         Transform::from_translation(position),
-        RigidBody::Dynamic,
-        GravityScale(0.),
         LinearVelocity(direction * velocity),
-        Collider::rectangle(projectile_size, projectile_size),
-        CollisionEventsEnabled,
-        CollidingEntities::default(),
         Sprite {
-            color: Color::WHITE,
+            color: Color::BLACK,
             custom_size: Some(Vec2::new(projectile_size, projectile_size)),
             ..default()
         },
@@ -68,7 +71,9 @@ fn spawn_collisions(
         if pd.0.is_empty() {
             commands
                 .entity(collision_entity_1)
-                .remove::<ProjectileDisgardInitialSpawnCollisionWith>();
+                .queue_silenced(|mut entity: EntityWorldMut| {
+                    entity.remove::<ProjectileDisgardInitialSpawnCollisionWith>();
+                });
         }
         handled = true;
     }
@@ -79,7 +84,9 @@ fn spawn_collisions(
         if pd.0.is_empty() {
             commands
                 .entity(collision_entity_2)
-                .remove::<ProjectileDisgardInitialSpawnCollisionWith>();
+                .queue_silenced(|mut entity: EntityWorldMut| {
+                    entity.remove::<ProjectileDisgardInitialSpawnCollisionWith>();
+                });
         }
         handled = true;
     }
@@ -111,15 +118,18 @@ fn spawn_collisions_continious(
         if pd.0.is_empty() {
             commands
                 .entity(entity)
-                .remove::<ProjectileDisgardInitialSpawnCollisionWith>();
+                .queue_silenced(|mut entity: EntityWorldMut| {
+                    entity.remove::<ProjectileDisgardInitialSpawnCollisionWith>();
+                });
             println!("removed disgard list");
         }
     }
 }
 
-#[derive(EntityEvent)]
+#[derive(Event)]
 struct ProjectileHitEvent {
-    entity: Entity,
+    hit_entity: Entity,
+    projectile_entity: Entity,
     damage: f32,
     knockback_impulse: Vec2,
 }
@@ -165,12 +175,34 @@ fn check_projectile_hit(
                     return;
                 }
             }
-            println!("projectile collision occurred");
             commands.trigger(ProjectileHitEvent {
-                entity: hit_entity,
+                hit_entity,
+                projectile_entity,
                 damage: projectile.damage,
                 knockback_impulse: linvel.0.normalize() * projectile.knockback,
             });
         }
     }
+}
+
+fn projectile_hit_event(
+    projectile_hit_event: On<ProjectileHitEvent>,
+    mut commands: Commands,
+    mut hit_entity_qy: Query<(Forces), With<CanBeHitByProjectile>>,
+    mut health_qy: Query<&mut Health>,
+) {
+    let hit_entity = projectile_hit_event.hit_entity;
+    let projectile_entity = projectile_hit_event.projectile_entity;
+    // Apply knockback to hit entity
+    if let Ok(mut hit_entity_force) = hit_entity_qy.get_mut(hit_entity) {
+        commands.entity(hit_entity).remove::<Sleeping>();
+        hit_entity_force.apply_linear_impulse(projectile_hit_event.knockback_impulse);
+    }
+    // Deal damage to hit entity if it has a Health component
+    if let Ok(mut health) = health_qy.get_mut(hit_entity) {
+        health.0 -= projectile_hit_event.damage;
+    }
+    commands
+        .entity(projectile_entity)
+        .despawn();
 }
