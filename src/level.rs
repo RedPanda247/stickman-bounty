@@ -106,7 +106,7 @@ pub fn load_level_entities(
                         position: vec3(500., 700., 0.),
                         color: Color::srgb(8.0, 0.0, 0.0),
                     },
-                    (Enemy, Health(100.)),
+                    (Enemy, Health(100.), ShootCooldown {cooldown: 1., cooldown_start: None}),
                 );
                 spawn_character(
                     commands,
@@ -115,7 +115,7 @@ pub fn load_level_entities(
                         position: vec3(700., 700., 0.),
                         color: Color::srgb(8.0, 0.0, 0.0),
                     },
-                    (Enemy, Health(100.)),
+                    (Enemy, Health(100.), ShootCooldown {cooldown: 100., cooldown_start: None}),
                 );
                 commands.spawn((
                     GameEntity::LevelEntity,

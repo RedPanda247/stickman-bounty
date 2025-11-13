@@ -1,14 +1,22 @@
 use avian2d::prelude::*;
 use bevy::{ecs::relationship::RelationshipSourceCollection, prelude::*};
 
-use crate::player::Player;
+use crate::game_data::GameState;
+use crate::projectiles::*;
+use crate::{
+    game_data::{PROJECTILE_DEFAULT_KNOCKBACK, PROJECTILE_DEFAULT_VELOCITY},
+    player::Player,
+};
 
 #[derive(Component)]
 pub struct Enemy;
 #[derive(Component)]
 struct ReadyToShoot;
 #[derive(Component)]
-pub struct ShootCooldown(pub f32);
+pub struct ShootCooldown {
+    pub cooldown: f32,
+    pub cooldown_start: Option<f32>,
+}
 
 #[derive(Component)]
 pub struct EnemySeesPlayer;
@@ -18,7 +26,10 @@ pub struct EnemyPlugin;
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
         // Run LOS checks during the fixed update so results line up with physics/colliders
-        app.add_systems(FixedUpdate, fixed_look_for_player);
+        app.add_systems(
+            FixedUpdate,
+            (fixed_look_for_player, (update_shoot_cooldown, shoot_player).chain()).run_if(in_state(GameState::PlayingLevel)),
+        );
     }
 }
 
@@ -63,14 +74,63 @@ fn fixed_look_for_player(
         }
     }
 }
+
+const PROJECTILE_DAMAGE: f32 = 10.;
+
 fn shoot_player(
-    enemy_qy: Query<(&Transform), (With<Enemy>, With<ReadyToShoot>)>,
+    enemy_qy: Query<
+        (Entity, &Transform),
+        (With<Enemy>, (With<ReadyToShoot>, With<EnemySeesPlayer>)),
+    >,
+    mut cooldown_qy: Query<&mut ShootCooldown>,
     player_qy: Query<&Transform, With<Player>>,
     mut commands: Commands,
+    time: Res<Time>,
 ) {
     if let Ok(player_transform) = player_qy.single() {
-        
+        for (enemy_entity, enemy_transform) in enemy_qy.iter() {
+            let dir_to_player =
+                (player_transform.translation - enemy_transform.translation).truncate();
+            println!("enemy shot: {}", enemy_entity);
+            spawn_projectile(
+                &mut commands,
+                enemy_transform.translation,
+                dir_to_player,
+                PROJECTILE_DEFAULT_VELOCITY,
+                PROJECTILE_DAMAGE,
+                PROJECTILE_DEFAULT_KNOCKBACK,
+                vec![enemy_entity],
+            );
+            commands.entity(enemy_entity).remove::<ReadyToShoot>();
+            // If the entity has a ShootCooldown component reset the cooldown start time
+            if let Ok(mut cooldown) = cooldown_qy.get_mut(enemy_entity) {
+                println!("updated cooldown");
+                cooldown.cooldown_start = Some(time.elapsed_secs());
+            }
+        }
     } else {
-        warn!("multiple player entities");
+        warn!("couldn't get single player query in shoot_player system");
+    }
+}
+
+fn update_shoot_cooldown(
+    mut cooldown_qy: Query<(Entity, &mut ShootCooldown)>,
+    time: Res<Time>,
+    mut commands: Commands,
+) {
+    // For each entity with ShootCooldown component
+    for (cooldown_entity, mut cooldown) in cooldown_qy.iter_mut() {
+        // If it has a start time for the cooldown
+        if let Some(cooldown_start) = cooldown.cooldown_start {
+            // If the cooldown is not done skip to next entity
+            if (time.elapsed_secs() - cooldown_start) <= cooldown.cooldown {
+                continue;
+            }
+        } else {
+            // Set the start time of the cooldown to now
+            cooldown.cooldown_start = Some(time.elapsed_secs());
+        }
+        // Add the ReadyToShoot component to entities that were not filtered away
+        commands.entity(cooldown_entity).insert(ReadyToShoot);
     }
 }

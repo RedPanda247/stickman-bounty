@@ -48,7 +48,7 @@ fn player_health_ui(mut ui_qy: Query<&mut Text, With<PlayerHealthUi>>, player_qy
 }
 
 
-const PLAYER_PROJECTILE_DAMEGE: f32 = 20.;
+const PLAYER_PROJECTILE_DAMAGE: f32 = 20.;
 
 #[derive(Event)]
 struct PlayerShootEvent;
@@ -88,15 +88,15 @@ fn player_shoot_event(
 
         for (entity, transform) in player_qy.iter() {
             let direction = (mouse_world_pos - transform.translation.truncate()).normalize();
-            let damage = PLAYER_PROJECTILE_DAMEGE;
+            let damage = PLAYER_PROJECTILE_DAMAGE;
             spawn_projectile(
                 &mut commands,
                 // vec2(transform.translation.x, transform.translation.y + 100.).extend(0.),
                 transform.translation,
                 direction,
-                1000.,
+                PROJECTILE_DEFAULT_VELOCITY,
                 damage,
-                1_000_000.,
+                PROJECTILE_DEFAULT_KNOCKBACK,
                 vec![entity],
             );
         }

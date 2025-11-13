@@ -21,6 +21,9 @@ struct Projectile {
 }
 
 #[derive(Component)]
+struct ProjectileMarkedForDespawn;
+
+#[derive(Component)]
 struct ProjectileDisgardInitialSpawnCollisionWith(Vec<Entity>);
 
 pub fn spawn_projectile(
@@ -48,7 +51,7 @@ pub fn spawn_projectile(
         Transform::from_translation(position),
         LinearVelocity(direction * velocity),
         Sprite {
-            color: Color::BLACK,
+            color: Color::WHITE,
             custom_size: Some(Vec2::new(projectile_size, projectile_size)),
             ..default()
         },
@@ -136,35 +139,18 @@ struct ProjectileHitEvent {
 
 fn projectile_collision(
     collision_event: On<CollisionStart>,
-    projectile_qy: Query<(&Projectile, &LinearVelocity)>,
+    projectile_qy: Query<(&Projectile, &LinearVelocity), Without<ProjectileMarkedForDespawn>>,
     hit_entity_qy: Query<(&CanBeHitByProjectile)>,
     disgard_initial_collision_qy: Query<&ProjectileDisgardInitialSpawnCollisionWith>,
     mut commands: Commands,
 ) {
+    
     // Get both collider entities from the event
-    let collision_entity_1 = collision_event.collider1;
-    let collision_entity_2 = collision_event.collider2;
+    let projectile_entity = collision_event.collider1;
+    let hit_entity = collision_event.collider2;
 
-    // Check both orderings: (entity1 as projectile, entity2 as target) and vice versa
-    check_projectile_hit(
-        collision_entity_1,
-        collision_entity_2,
-        &projectile_qy,
-        &hit_entity_qy,
-        &disgard_initial_collision_qy,
-        &mut commands,
-    );
-}
-
-fn check_projectile_hit(
-    projectile_entity: Entity,
-    hit_entity: Entity,
-    projectile_qy: &Query<(&Projectile, &LinearVelocity)>,
-    hit_entity_qy: &Query<(&CanBeHitByProjectile)>,
-    disgard_initial_collision_qy: &Query<&ProjectileDisgardInitialSpawnCollisionWith>,
-    commands: &mut Commands,
-) {
     if let Ok((projectile, linvel)) = projectile_qy.get(projectile_entity) {
+        // If the second entity is in CanBeHitByProjectile
         if let Ok(_) = hit_entity_qy.get(hit_entity) {
             // If the projectile has the "disgard collision with" component
             // check if the other entity is inside that list and if it is
@@ -175,6 +161,11 @@ fn check_projectile_hit(
                     return;
                 }
             }
+            // Mark projectile for despawn to prevent multiple hits
+            commands.entity(projectile_entity).queue_silenced(|mut entity: EntityWorldMut| {
+                entity.insert(ProjectileMarkedForDespawn);
+            });
+            
             commands.trigger(ProjectileHitEvent {
                 hit_entity,
                 projectile_entity,
@@ -205,7 +196,10 @@ fn projectile_hit_event(
             health.0 = 0.;
         }
     }
+    // Use queue_silenced to prevent error if already despawned
     commands
         .entity(projectile_entity)
-        .despawn();
+        .queue_silenced(|mut entity: EntityWorldMut| {
+            entity.despawn();
+        });
 }
