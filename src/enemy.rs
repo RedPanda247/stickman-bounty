@@ -1,12 +1,9 @@
 use avian2d::prelude::*;
 use bevy::{ecs::relationship::RelationshipSourceCollection, prelude::*};
 
-use crate::game_data::GameState;
+use crate::game_data::*;
 use crate::projectiles::*;
-use crate::{
-    game_data::{PROJECTILE_DEFAULT_KNOCKBACK, PROJECTILE_DEFAULT_VELOCITY},
-    player::Player,
-};
+use crate::player::*;
 
 #[derive(Component)]
 pub struct Enemy;
@@ -90,11 +87,12 @@ fn shoot_player(
     if let Ok(player_transform) = player_qy.single() {
         for (enemy_entity, enemy_transform) in enemy_qy.iter() {
             let dir_to_player =
-                (player_transform.translation - enemy_transform.translation).truncate();
+                (player_transform.translation - enemy_transform.translation).truncate().normalize();
             println!("enemy shot: {}", enemy_entity);
             spawn_projectile(
                 &mut commands,
-                enemy_transform.translation,
+                vec3(enemy_transform.translation.x, enemy_transform.translation.y + 200., 0.),
+                // enemy_transform.translation,
                 dir_to_player,
                 PROJECTILE_DEFAULT_VELOCITY,
                 PROJECTILE_DAMAGE,
