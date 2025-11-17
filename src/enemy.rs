@@ -88,21 +88,19 @@ fn shoot_player(
         for (enemy_entity, enemy_transform) in enemy_qy.iter() {
             let dir_to_player =
                 (player_transform.translation - enemy_transform.translation).truncate().normalize();
-            println!("enemy shot: {}", enemy_entity);
             spawn_projectile(
                 &mut commands,
-                vec3(enemy_transform.translation.x, enemy_transform.translation.y + 200., 0.),
-                // enemy_transform.translation,
+                // vec3(enemy_transform.translation.x, enemy_transform.translation.y + 200., 0.),
+                enemy_transform.translation,
                 dir_to_player,
                 PROJECTILE_DEFAULT_VELOCITY,
                 PROJECTILE_DAMAGE,
                 PROJECTILE_DEFAULT_KNOCKBACK,
                 vec![enemy_entity],
-            );
+            ); 
             commands.entity(enemy_entity).remove::<ReadyToShoot>();
             // If the entity has a ShootCooldown component reset the cooldown start time
             if let Ok(mut cooldown) = cooldown_qy.get_mut(enemy_entity) {
-                println!("updated cooldown");
                 cooldown.cooldown_start = Some(time.elapsed_secs());
             }
         }

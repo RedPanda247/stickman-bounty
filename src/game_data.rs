@@ -38,7 +38,7 @@ pub struct Health(pub f32);
 #[derive(Component)]
 pub struct CanBeHitByProjectile;
 
-pub const PROJECTILE_DEFAULT_VELOCITY: f32 = 100.; 
+pub const PROJECTILE_DEFAULT_VELOCITY: f32 = 1_000.; 
 pub const PROJECTILE_DEFAULT_KNOCKBACK: f32 = 100_000.; 
 
 #[derive(Component)]

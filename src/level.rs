@@ -83,6 +83,7 @@ pub fn load_level_entities(
                 ));
                 commands.spawn((
                     GameEntity::LevelEntity,
+                    CanBeHitByProjectile,
                     Sprite {
                         color: Color::srgb(0.0, 0.0, 0.0),
                         custom_size: Some(Vec2::new(ground_width, ground_height)),
@@ -115,7 +116,7 @@ pub fn load_level_entities(
                         position: vec3(700., 700., 0.),
                         color: Color::srgb(8.0, 0.0, 0.0),
                     },
-                    (Enemy, Health(100.), ShootCooldown {cooldown: 100., cooldown_start: None}),
+                    (Enemy, Health(100.), ShootCooldown {cooldown: 1., cooldown_start: None}),
                 );
                 commands.spawn((
                     GameEntity::LevelEntity,
