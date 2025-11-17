@@ -151,11 +151,11 @@ fn enemy_die(
 ) {
     for (entity, health) in enemy_health_qy.iter() {
         if health.0 <= 0. {
+            // If the enemy was the bounty target
+            if let Ok(_) = bounty_target_qy.get(entity) {
+                game_state.set(GameState::LevelComplete);
+            }
             commands.entity(entity).despawn();
-        }
-        // If the enemy was the bounty target
-        if let Ok(_) = bounty_target_qy.get(entity) {
-            game_state.set(GameState::LevelComplete);
         }
     }
 }
