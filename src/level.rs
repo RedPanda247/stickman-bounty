@@ -40,6 +40,7 @@ pub fn load_level_entities(
                 let ground_height = 100.;
                 let ground_width = 10000.;
 
+                // Player
                 commands.spawn((
                     Player,
                     CanBeHitByProjectile,
@@ -118,6 +119,16 @@ pub fn load_level_entities(
                     },
                     (Enemy, Health(100.), ShootCooldown {cooldown: 1., cooldown_start: None}),
                 );
+                spawn_character(
+                    commands,
+                    CharacterBundle {
+                        size: default_character_size,
+                        position: vec3(1000., 700., 0.),
+                        color: Color::srgb(8.0, 0.0, 8.0),
+                    },
+                    (Enemy, BountyTarget,  Health(100.), ShootCooldown {cooldown: 3., cooldown_start: None}),
+                );
+                // Spawn Player UI
                 commands.spawn((
                     GameEntity::LevelEntity,
                     Node {
@@ -141,9 +152,9 @@ pub fn load_level_entities(
                             align_items: AlignItems::Center,
                             ..default()
                         },
-                        BorderColor::all(Color::WHITE),
-                        BorderRadius::MAX,
-                        BackgroundColor(Color::BLACK),
+                        // BorderColor::all(Color::WHITE),
+                        // BorderRadius::MAX,
+                        // BackgroundColor(Color::BLACK),
                         children![
                             (
                                 Text::new("Health: "),

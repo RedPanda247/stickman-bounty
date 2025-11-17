@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use avian2d::prelude::*;
-use crate::game_data::GameState;
+use crate::game_data::*;
+
+const DASH_DAMAGE: f32= 20.;
 
 pub struct DashPlugin;
 impl Plugin for DashPlugin {
@@ -15,7 +17,7 @@ impl Plugin for DashPlugin {
             .add_systems(
                 FixedLast,
                 (dash_collision_system).run_if(in_state(GameState::PlayingLevel)),
-            );;
+            );
     }
 }
 
@@ -96,6 +98,7 @@ fn dashing_system(time: Res<Time>, query: Query<(Entity, &mut Dashing)>, mut com
 }
 fn dash_collision_system(
     qy: Query<(Entity, &CollidingEntities, &mut Dashing)>,
+    mut damageable_qy: Query<&mut Health>,
     mut commands: Commands,
 ) {
     for (entity, colliding_entities, mut dashing) in qy {
@@ -108,6 +111,14 @@ fn dash_collision_system(
         }
         if !colliding_entities.is_empty() {
             commands.trigger(EndDash { entity });
+            for collision_entity in colliding_entities.0.iter() {
+                if let Ok(mut health) = damageable_qy.get_mut(*collision_entity) {
+                    health.0 -= DASH_DAMAGE;
+                    if health.0 < 0. {
+                        health.0 = 0.;
+                    }
+                }
+            }
         }
     }
 }

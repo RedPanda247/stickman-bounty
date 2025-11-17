@@ -24,6 +24,8 @@ pub enum GameState {
     PlayingLevel,
     MainMenu,
     Loading,
+    LevelComplete,
+    LevelPaused,
 }
 
 #[derive(Clone)]

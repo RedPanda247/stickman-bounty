@@ -2,13 +2,18 @@ use avian2d::prelude::*;
 use bevy::{ecs::relationship::RelationshipSourceCollection, prelude::*};
 
 use crate::game_data::*;
-use crate::projectiles::*;
 use crate::player::*;
+use crate::projectiles::*;
+
+#[derive(Component)]
+pub struct BountyTarget;
 
 #[derive(Component)]
 pub struct Enemy;
+
 #[derive(Component)]
 struct ReadyToShoot;
+
 #[derive(Component)]
 pub struct ShootCooldown {
     pub cooldown: f32,
@@ -25,7 +30,13 @@ impl Plugin for EnemyPlugin {
         // Run LOS checks during the fixed update so results line up with physics/colliders
         app.add_systems(
             FixedUpdate,
-            (fixed_look_for_player, (update_shoot_cooldown, shoot_player).chain()).run_if(in_state(GameState::PlayingLevel)),
+            (
+                fixed_look_for_player,
+                check_if_ready_to_shoot,
+                shoot_player,
+                enemy_die,
+            )
+                .run_if(in_state(GameState::PlayingLevel)),
         );
     }
 }
@@ -86,8 +97,9 @@ fn shoot_player(
 ) {
     if let Ok(player_transform) = player_qy.single() {
         for (enemy_entity, enemy_transform) in enemy_qy.iter() {
-            let dir_to_player =
-                (player_transform.translation - enemy_transform.translation).truncate().normalize();
+            let dir_to_player = (player_transform.translation - enemy_transform.translation)
+                .truncate()
+                .normalize();
             spawn_projectile(
                 &mut commands,
                 // vec3(enemy_transform.translation.x, enemy_transform.translation.y + 200., 0.),
@@ -97,7 +109,7 @@ fn shoot_player(
                 PROJECTILE_DAMAGE,
                 PROJECTILE_DEFAULT_KNOCKBACK,
                 vec![enemy_entity],
-            ); 
+            );
             commands.entity(enemy_entity).remove::<ReadyToShoot>();
             // If the entity has a ShootCooldown component reset the cooldown start time
             if let Ok(mut cooldown) = cooldown_qy.get_mut(enemy_entity) {
@@ -109,7 +121,7 @@ fn shoot_player(
     }
 }
 
-fn update_shoot_cooldown(
+fn check_if_ready_to_shoot(
     mut cooldown_qy: Query<(Entity, &mut ShootCooldown)>,
     time: Res<Time>,
     mut commands: Commands,
@@ -128,5 +140,22 @@ fn update_shoot_cooldown(
         }
         // Add the ReadyToShoot component to entities that were not filtered away
         commands.entity(cooldown_entity).insert(ReadyToShoot);
+    }
+}
+
+fn enemy_die(
+    enemy_health_qy: Query<(Entity, &Health), With<Enemy>>,
+    mut commands: Commands,
+    bounty_target_qy: Query<&BountyTarget>,
+    mut game_state: ResMut<NextState<GameState>>,
+) {
+    for (entity, health) in enemy_health_qy.iter() {
+        if health.0 <= 0. {
+            commands.entity(entity).despawn();
+        }
+        // If the enemy was the bounty target
+        if let Ok(_) = bounty_target_qy.get(entity) {
+            game_state.set(GameState::LevelComplete);
+        }
     }
 }
