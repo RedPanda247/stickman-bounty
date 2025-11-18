@@ -5,14 +5,91 @@ use crate::abilities::*;
 use crate::enemy::*;
 use crate::game_data::*;
 use crate::player::*;
+use crate::main_menu::*;
+use crate::loading::*;
 
 pub struct LevelPlugin;
 impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
         app.add_message::<LoadLevelEntities>()
-            .add_systems(Update, ev_load_level_entities);
+            .add_systems(Update, ev_load_level_entities)
+            .add_systems(OnEnter(GameState::LevelComplete), spawn_level_complete_ui)
+            .add_systems(Update, level_complete_ui_interaction.run_if(in_state(GameState::LevelComplete)));
     }
 }
+
+#[derive(Component)]
+enum LevelUiButton {
+    ReturnToMainMenu,
+}
+
+fn level_complete_ui_interaction(
+    mut qy_main_menu_buttons: Query<
+        (&Interaction, &LevelUiButton),
+        (Changed<Interaction>, With<Button>),
+    >,
+    mut ev_load_game_state: MessageWriter<LoadGameState>,
+) {
+    for (interaction, button) in qy_main_menu_buttons.iter() {
+        if let Interaction::Pressed = interaction {
+            match button {
+                LevelUiButton::ReturnToMainMenu => {
+                    ev_load_game_state.write(LoadGameState {
+                        game_state_to_load: LoadableGameStates::MainMenu,
+                        loading_screen: LoadingScreen::Basic,
+                    });
+                }
+            }
+        }
+    }
+}
+
+fn spawn_level_complete_ui(mut commands: Commands) {
+    commands.spawn((
+        GameEntity::LevelEntity,
+        BackgroundColor(Color::hsla(0., 0., 0., 0.5)),
+        Node {
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            align_items: AlignItems::Center,
+            align_content: AlignContent::Center,
+            justify_content: JustifyContent::Center,
+            flex_direction: FlexDirection::Column,
+            ..default()
+        },
+        children![(
+            LevelUiButton::ReturnToMainMenu,
+            GrowOnHover,
+            Button,
+            BorderColor::all(Color::WHITE),
+            BorderRadius::MAX,
+            BackgroundColor(Color::BLACK),
+            Node {
+                width: Val::Auto,
+                height: Val::Auto,
+                padding: UiRect::all(Val::Px(10.)),
+                border: UiRect::all(Val::Px(5.0)),
+                // horizontally center child text
+                justify_content: JustifyContent::Center,
+                // vertically center child text
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            children![
+                (
+                    Text::new("Back to main menu"),
+                    TextFont {
+                        font_size: 33.0,
+                        ..default()
+                    },
+                    TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                    TextShadow::default(),
+                )
+            ],
+        )],
+    ));
+}
+
 #[derive(Message)]
 pub struct LoadLevelEntities {
     pub level: LevelIdentifier,
@@ -108,7 +185,14 @@ pub fn load_level_entities(
                         position: vec3(500., 700., 0.),
                         color: Color::srgb(8.0, 0.0, 0.0),
                     },
-                    (Enemy, Health(100.), ShootCooldown {cooldown: 1., cooldown_start: None}),
+                    (
+                        Enemy,
+                        Health(100.),
+                        ShootCooldown {
+                            cooldown: 1.,
+                            cooldown_start: None,
+                        },
+                    ),
                 );
                 spawn_character(
                     commands,
@@ -117,7 +201,14 @@ pub fn load_level_entities(
                         position: vec3(700., 700., 0.),
                         color: Color::srgb(8.0, 0.0, 0.0),
                     },
-                    (Enemy, Health(100.), ShootCooldown {cooldown: 1., cooldown_start: None}),
+                    (
+                        Enemy,
+                        Health(100.),
+                        ShootCooldown {
+                            cooldown: 1.,
+                            cooldown_start: None,
+                        },
+                    ),
                 );
                 spawn_character(
                     commands,
@@ -126,7 +217,15 @@ pub fn load_level_entities(
                         position: vec3(1000., 700., 0.),
                         color: Color::srgb(8.0, 0.0, 8.0),
                     },
-                    (Enemy, BountyTarget,  Health(100.), ShootCooldown {cooldown: 3., cooldown_start: None}),
+                    (
+                        Enemy,
+                        BountyTarget,
+                        Health(100.),
+                        ShootCooldown {
+                            cooldown: 3.,
+                            cooldown_start: None,
+                        },
+                    ),
                 );
                 // Spawn Player UI
                 commands.spawn((

@@ -183,8 +183,12 @@ fn spawn_loading_screen_entities(
 fn spawn_content_by_state_being_loaded(
     mut commands: Commands,
     game_state_being_loaded: Res<GameStateBeingLoaded>,
-    mut message_writer: MessageWriter<LoadLevelEntities>
+    mut message_writer: MessageWriter<LoadLevelEntities>,
+    mut camera_qy: Query<&mut Transform, With<Camera>>,
 ) {
+    let mut camera_transform = camera_qy.single_mut().expect("Multiple Cameras present");
+    camera_transform.translation = Vec3::ZERO;
+    
     match &game_state_being_loaded.0 {
         LoadableGameStates::Level(level_identifier) => match level_identifier {
             LevelIdentifier::Id(id) => {

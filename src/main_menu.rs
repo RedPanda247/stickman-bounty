@@ -5,7 +5,7 @@ use crate::game_data::*;
 use crate::loading::*;
 
 #[derive(Component)]
-struct GrowOnHover;
+pub struct GrowOnHover;
 #[derive(Component)]
 enum MainMenuButton {
     StartGame,
