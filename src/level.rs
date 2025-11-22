@@ -4,9 +4,9 @@ use bevy::prelude::*;
 use crate::abilities::*;
 use crate::enemy::*;
 use crate::game_data::*;
-use crate::player::*;
-use crate::main_menu::*;
 use crate::loading::*;
+use crate::main_menu::*;
+use crate::player::*;
 
 pub struct LevelPlugin;
 impl Plugin for LevelPlugin {
@@ -14,21 +14,146 @@ impl Plugin for LevelPlugin {
         app.add_message::<LoadLevelEntities>()
             .add_systems(Update, ev_load_level_entities)
             .add_systems(OnEnter(GameState::LevelComplete), spawn_level_complete_ui)
-            .add_systems(Update, level_complete_ui_interaction.run_if(in_state(GameState::LevelComplete)));
+            .add_systems(
+                Update,
+                level_ui_button_interactions.run_if(in_state(GameState::LevelComplete).or(in_state(GameState::LevelPaused))),
+            )
+            .add_systems(OnEnter(GameState::LevelPaused), (spawn_level_paused_ui, pause_physics))
+            .add_systems(OnExit(GameState::LevelPaused), resume_physics)
+            .add_observer(close_level_menu)
+            .add_systems(Update, pause_game);
     }
 }
 
 #[derive(Component)]
 enum LevelUiButton {
     ReturnToMainMenu,
+    Resume,
+}
+#[derive(Component)]
+struct LevelMenuUIRoot;
+
+fn spawn_level_paused_ui(mut commands: Commands) {
+    commands.spawn((
+        LevelMenuUIRoot,
+        GameEntity::LevelEntity,
+        BackgroundColor(Color::hsla(0., 0., 0., 0.5)),
+        Node {
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            align_items: AlignItems::Center,
+            align_content: AlignContent::Center,
+            justify_content: JustifyContent::Center,
+            flex_direction: FlexDirection::Column,
+            ..default()
+        },
+        children![
+            (
+                LevelUiButton::ReturnToMainMenu,
+                GrowOnHover,
+                Button,
+                BorderColor::all(Color::WHITE),
+                BorderRadius::MAX,
+                BackgroundColor(Color::BLACK),
+                Node {
+                    width: Val::Auto,
+                    height: Val::Auto,
+                    padding: UiRect::all(Val::Px(10.)),
+                    border: UiRect::all(Val::Px(5.0)),
+                    // horizontally center child text
+                    justify_content: JustifyContent::Center,
+                    // vertically center child text
+                    align_items: AlignItems::Center,
+                    ..default()
+                },
+                children![(
+                    Text::new("Back to main menu"),
+                    TextFont {
+                        font_size: 33.0,
+                        ..default()
+                    },
+                    TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                    TextShadow::default(),
+                )],
+            ),
+            (
+                LevelUiButton::Resume,
+                GrowOnHover,
+                Button,
+                BorderColor::all(Color::WHITE),
+                BorderRadius::MAX,
+                BackgroundColor(Color::BLACK),
+                Node {
+                    width: Val::Auto,
+                    height: Val::Auto,
+                    padding: UiRect::all(Val::Px(10.)),
+                    border: UiRect::all(Val::Px(5.0)),
+                    // horizontally center child text
+                    justify_content: JustifyContent::Center,
+                    // vertically center child text
+                    align_items: AlignItems::Center,
+                    ..default()
+                },
+                children![(
+                    Text::new("Resume game"),
+                    TextFont {
+                        font_size: 33.0,
+                        ..default()
+                    },
+                    TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                    TextShadow::default(),
+                )],
+            )
+        ],
+    ));
 }
 
-fn level_complete_ui_interaction(
-    mut qy_main_menu_buttons: Query<
+fn pause_game(
+    input: Res<ButtonInput<KeyCode>>,
+    current_state: Res<State<GameState>>,
+    mut next_state: ResMut<NextState<GameState>>,
+    mut commands: Commands,
+) {
+    if input.just_pressed(KeyCode::Escape) {
+        if **current_state == GameState::LevelPaused {
+            commands.trigger(CloseLevelMenu);
+        } else if **current_state == GameState::PlayingLevel {
+            next_state.set(GameState::LevelPaused);
+        }
+    }
+}
+
+fn pause_physics(mut time: ResMut<Time<Physics>>) {
+    time.pause();
+}
+
+fn resume_physics(mut time: ResMut<Time<Physics>>) {
+    time.unpause();
+}
+
+#[derive(Event)]
+struct CloseLevelMenu;
+
+fn close_level_menu(
+    _close_menu: On<CloseLevelMenu>,
+    mut commands: Commands,
+    mut game_state: ResMut<NextState<GameState>>,
+    level_menu_ui_root_qy: Query<Entity, With<LevelMenuUIRoot>>,
+) {
+    game_state.set(GameState::PlayingLevel);
+    // Delete Menu UI
+    for entity in level_menu_ui_root_qy.iter() {
+        commands.entity(entity).despawn();
+    }
+}
+
+fn level_ui_button_interactions(
+    qy_main_menu_buttons: Query<
         (&Interaction, &LevelUiButton),
         (Changed<Interaction>, With<Button>),
     >,
     mut ev_load_game_state: MessageWriter<LoadGameState>,
+    mut commands: Commands,
 ) {
     for (interaction, button) in qy_main_menu_buttons.iter() {
         if let Interaction::Pressed = interaction {
@@ -38,6 +163,9 @@ fn level_complete_ui_interaction(
                         game_state_to_load: LoadableGameStates::MainMenu,
                         loading_screen: LoadingScreen::Basic,
                     });
+                }
+                LevelUiButton::Resume => {
+                    commands.trigger(CloseLevelMenu);
                 }
             }
         }
@@ -75,17 +203,15 @@ fn spawn_level_complete_ui(mut commands: Commands) {
                 align_items: AlignItems::Center,
                 ..default()
             },
-            children![
-                (
-                    Text::new("Back to main menu"),
-                    TextFont {
-                        font_size: 33.0,
-                        ..default()
-                    },
-                    TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                    TextShadow::default(),
-                )
-            ],
+            children![(
+                Text::new("Back to main menu"),
+                TextFont {
+                    font_size: 33.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                TextShadow::default(),
+            )],
         )],
     ));
 }

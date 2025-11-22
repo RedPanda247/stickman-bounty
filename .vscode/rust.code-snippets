@@ -1,0 +1,9 @@
+{
+  "Derive Macro": {
+    "prefix": "der",
+    "body": [
+      "#[derive($1)]"
+    ],
+    "description": "Add derive attribute"
+  }
+}
