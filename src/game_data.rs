@@ -1,11 +1,12 @@
-use bevy::prelude::*;
 use avian2d::prelude::*;
+use bevy::prelude::*;
+
+use crate::level::FacingDirection;
 pub struct GameDataPlugin;
 
 impl Plugin for GameDataPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<GameState>()
-        .init_state::<GameState>();
+        app.register_type::<GameState>().init_state::<GameState>();
     }
 }
 
@@ -28,6 +29,9 @@ pub enum GameState {
     LevelPaused,
 }
 
+#[derive(Component)]
+pub struct GameCharacter;
+
 #[derive(Clone)]
 pub enum LevelIdentifier {
     Id(u8),
@@ -40,14 +44,15 @@ pub struct Health(pub f32);
 #[derive(Component)]
 pub struct CanBeHitByProjectile;
 
-pub const PROJECTILE_DEFAULT_VELOCITY: f32 = 1_000.; 
-pub const PROJECTILE_DEFAULT_KNOCKBACK: f32 = 100_000.; 
+pub const PROJECTILE_DEFAULT_VELOCITY: f32 = 1_000.;
+pub const PROJECTILE_DEFAULT_KNOCKBACK: f32 = 100_000.;
 
 #[derive(Component)]
 pub struct CharacterBundle {
     pub size: Vec2,
     pub position: Vec3,
     pub color: Color,
+    pub custom_sprite: Option<Sprite>,
 }
 
 impl Default for CharacterBundle {
@@ -56,6 +61,7 @@ impl Default for CharacterBundle {
             size: Vec2::splat(100.),
             position: Vec3::new(0., 400., 0.),
             color: Color::BLACK,
+            custom_sprite: None,
         }
     }
 }
@@ -65,21 +71,28 @@ pub fn spawn_character(
     bundle: CharacterBundle,
     additional_components: impl Bundle,
 ) -> Entity {
+    // Default sprite
+    let mut sprite = Sprite {
+        color: bundle.color,
+        custom_size: Some(bundle.size),
+        ..Default::default()
+    };
+    // If a custom sprite has been specified
+    if let Some(custom_sprite) = bundle.custom_sprite {
+        sprite = custom_sprite;
+    }
     commands
         .spawn((
             GameEntity::LevelEntity,
+            GameCharacter,
+            FacingDirection::default(),
             CanBeHitByProjectile,
-            Sprite {
-                color: bundle.color,
-                custom_size: Some(bundle.size),
-                ..Default::default()
-            },
+            sprite,
             RigidBody::Dynamic,
             LinearVelocity::ZERO,
             LockedAxes::ROTATION_LOCKED,
             Transform::from_xyz(bundle.position.x, bundle.position.y, bundle.position.z),
             Collider::rectangle(bundle.size.x, bundle.size.y),
-
             additional_components,
         ))
         .id()

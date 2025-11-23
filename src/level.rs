@@ -12,6 +12,7 @@ pub struct LevelPlugin;
 impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
         app.add_message::<LoadLevelEntities>()
+            // Message reader
             .add_systems(Update, ev_load_level_entities)
             .add_systems(OnEnter(GameState::LevelComplete), spawn_level_complete_ui)
             .add_systems(
@@ -26,8 +27,50 @@ impl Plugin for LevelPlugin {
             )
             .add_systems(OnExit(GameState::LevelPaused), resume_physics)
             .add_observer(close_level_menu)
-            .add_systems(Update, pause_game);
+            .add_systems(Update, pause_game)
+            .add_systems(
+                Update,
+                (
+                    flip_character_to_match_direction,
+                    flip_sprite_to_match_character_direction,
+                )
+                    .run_if(in_state(GameState::PlayingLevel)),
+            );
     }
+}
+
+fn flip_character_to_match_direction(
+    mut entity_qy: Query<(&LinearVelocity, &mut FacingDirection), With<GameCharacter>>,
+) {
+    for (lin_vel, mut direction) in entity_qy.iter_mut() {
+        if lin_vel.x < 0. {
+            *direction = FacingDirection::Left;
+        } else if lin_vel.x > 0. {
+            *direction = FacingDirection::Right;
+        }
+    }
+}
+
+fn flip_sprite_to_match_character_direction(
+    mut entity_qy: Query<(&mut Sprite, &FacingDirection), With<GameCharacter>>,
+) {
+    for (mut sprite, direction) in entity_qy.iter_mut() {
+        match direction {
+            FacingDirection::Right => {
+                sprite.flip_x = false;
+            }
+            FacingDirection::Left => {
+                sprite.flip_x = true;
+            }
+        }
+    }
+}
+
+#[derive(Component, Default)]
+pub enum FacingDirection {
+    #[default]
+    Right,
+    Left,
 }
 
 #[derive(Component)]
@@ -253,6 +296,7 @@ pub fn load_level_entities(
                 // Player
                 commands.spawn((
                     Player,
+                    GameCharacter,
                     CanBeHitByProjectile,
                     Health(100.),
                     CollisionEventsEnabled,
@@ -262,10 +306,7 @@ pub fn load_level_entities(
                     GameEntity::LevelEntity,
                     Sprite {
                         color: Color::srgb(0.0, 0.0, 0.0),
-                        custom_size: Some(Vec2::new(
-                            character_width,
-                            character_height,
-                        )),
+                        custom_size: Some(Vec2::new(character_width, character_height)),
                         ..default()
                     },
                     RigidBody::Dynamic,
@@ -317,6 +358,11 @@ pub fn load_level_entities(
                         size: vec2(character_width, character_height),
                         position: vec3(500., 700., 0.),
                         color: Color::srgb(8.0, 0.0, 0.0),
+                        custom_sprite: Some(Sprite {
+                            custom_size: Some(vec2(character_width, character_height)),
+                            image: asset_server.load("Enemy.png"),
+                            ..default()
+                        }),
                     },
                     (
                         Enemy,
@@ -333,6 +379,11 @@ pub fn load_level_entities(
                         size: vec2(character_width, character_height),
                         position: vec3(700., 700., 0.),
                         color: Color::srgb(8.0, 0.0, 0.0),
+                        custom_sprite: Some(Sprite {
+                            custom_size: Some(vec2(character_width, character_height)),
+                            image: asset_server.load("Enemy.png"),
+                            ..default()
+                        }),
                     },
                     (
                         Enemy,
@@ -349,6 +400,11 @@ pub fn load_level_entities(
                         size: vec2(character_width, character_height),
                         position: vec3(1000., 700., 0.),
                         color: Color::srgb(8.0, 0.0, 8.0),
+                        custom_sprite: Some(Sprite {
+                            custom_size: Some(vec2(character_width, character_height)),
+                            image: asset_server.load("Enemy.png"),
+                            ..default()
+                        }),
                     },
                     (
                         Enemy,
@@ -360,26 +416,6 @@ pub fn load_level_entities(
                         },
                     ),
                 );
-                commands.spawn((
-                    GameEntity::LevelEntity,
-                    Enemy,
-                    RigidBody::Dynamic,
-                    LinearVelocity::ZERO,
-                    LockedAxes::ROTATION_LOCKED,
-                    Collider::rectangle(character_width, character_height),
-                    CanBeHitByProjectile,
-                    Health(100.),
-                    Transform::from_xyz(-500., 100., 0.),
-                    ShootCooldown {
-                        cooldown: 3.,
-                        cooldown_start: None,
-                    },
-                    Sprite {
-                        custom_size: Some(vec2(character_width, character_height)),
-                        image: asset_server.load("NoFaceEnemy.png"),
-                        ..default()
-                    },
-                ));
                 // Spawn Player UI
                 commands.spawn((
                     GameEntity::LevelEntity,
