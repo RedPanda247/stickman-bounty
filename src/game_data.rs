@@ -45,7 +45,7 @@ pub const PROJECTILE_DEFAULT_KNOCKBACK: f32 = 100_000.;
 
 #[derive(Component)]
 pub struct CharacterBundle {
-    pub size: f32,
+    pub size: Vec2,
     pub position: Vec3,
     pub color: Color,
 }
@@ -53,7 +53,7 @@ pub struct CharacterBundle {
 impl Default for CharacterBundle {
     fn default() -> Self {
         Self {
-            size: 100.0,
+            size: Vec2::splat(100.),
             position: Vec3::new(0., 400., 0.),
             color: Color::BLACK,
         }
@@ -71,14 +71,14 @@ pub fn spawn_character(
             CanBeHitByProjectile,
             Sprite {
                 color: bundle.color,
-                custom_size: Some(Vec2::new(bundle.size, bundle.size)),
+                custom_size: Some(bundle.size),
                 ..Default::default()
             },
             RigidBody::Dynamic,
             LinearVelocity::ZERO,
             LockedAxes::ROTATION_LOCKED,
             Transform::from_xyz(bundle.position.x, bundle.position.y, bundle.position.z),
-            Collider::rectangle(bundle.size, bundle.size),
+            Collider::rectangle(bundle.size.x, bundle.size.y),
 
             additional_components,
         ))

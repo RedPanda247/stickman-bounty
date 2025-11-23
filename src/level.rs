@@ -16,9 +16,14 @@ impl Plugin for LevelPlugin {
             .add_systems(OnEnter(GameState::LevelComplete), spawn_level_complete_ui)
             .add_systems(
                 Update,
-                level_ui_button_interactions.run_if(in_state(GameState::LevelComplete).or(in_state(GameState::LevelPaused))),
+                level_ui_button_interactions.run_if(
+                    in_state(GameState::LevelComplete).or(in_state(GameState::LevelPaused)),
+                ),
             )
-            .add_systems(OnEnter(GameState::LevelPaused), (spawn_level_paused_ui, pause_physics))
+            .add_systems(
+                OnEnter(GameState::LevelPaused),
+                (spawn_level_paused_ui, pause_physics),
+            )
             .add_systems(OnExit(GameState::LevelPaused), resume_physics)
             .add_observer(close_level_menu)
             .add_systems(Update, pause_game);
@@ -240,6 +245,8 @@ pub fn load_level_entities(
         LevelIdentifier::Id(id) => {
             if id == 1 {
                 let default_character_size = 40.;
+                let character_width = 60.;
+                let character_height = 100.;
                 let ground_height = 100.;
                 let ground_width = 10000.;
 
@@ -256,8 +263,8 @@ pub fn load_level_entities(
                     Sprite {
                         color: Color::srgb(0.0, 0.0, 0.0),
                         custom_size: Some(Vec2::new(
-                            default_character_size,
-                            default_character_size,
+                            character_width,
+                            character_height,
                         )),
                         ..default()
                     },
@@ -265,7 +272,7 @@ pub fn load_level_entities(
                     LinearVelocity::ZERO,
                     LockedAxes::ROTATION_LOCKED,
                     Transform::from_xyz(0., 400., 0.),
-                    Collider::rectangle(default_character_size, default_character_size),
+                    Collider::rectangle(character_width, character_height),
                 ));
                 commands.spawn((
                     GameEntity::LevelEntity,
@@ -303,11 +310,11 @@ pub fn load_level_entities(
                     Transform::from_xyz(0., -100., 0.),
                     Collider::rectangle(ground_width, ground_height),
                 ));
-                // Spawn enemy
+                // Spawn enemies
                 spawn_character(
                     commands,
                     CharacterBundle {
-                        size: default_character_size,
+                        size: vec2(character_width, character_height),
                         position: vec3(500., 700., 0.),
                         color: Color::srgb(8.0, 0.0, 0.0),
                     },
@@ -323,7 +330,7 @@ pub fn load_level_entities(
                 spawn_character(
                     commands,
                     CharacterBundle {
-                        size: default_character_size,
+                        size: vec2(character_width, character_height),
                         position: vec3(700., 700., 0.),
                         color: Color::srgb(8.0, 0.0, 0.0),
                     },
@@ -339,7 +346,7 @@ pub fn load_level_entities(
                 spawn_character(
                     commands,
                     CharacterBundle {
-                        size: default_character_size,
+                        size: vec2(character_width, character_height),
                         position: vec3(1000., 700., 0.),
                         color: Color::srgb(8.0, 0.0, 8.0),
                     },
@@ -353,6 +360,26 @@ pub fn load_level_entities(
                         },
                     ),
                 );
+                commands.spawn((
+                    GameEntity::LevelEntity,
+                    Enemy,
+                    RigidBody::Dynamic,
+                    LinearVelocity::ZERO,
+                    LockedAxes::ROTATION_LOCKED,
+                    Collider::rectangle(character_width, character_height),
+                    CanBeHitByProjectile,
+                    Health(100.),
+                    Transform::from_xyz(-500., 100., 0.),
+                    ShootCooldown {
+                        cooldown: 3.,
+                        cooldown_start: None,
+                    },
+                    Sprite {
+                        custom_size: Some(vec2(character_width, character_height)),
+                        image: asset_server.load("NoFaceEnemy.png"),
+                        ..default()
+                    },
+                ));
                 // Spawn Player UI
                 commands.spawn((
                     GameEntity::LevelEntity,
