@@ -89,6 +89,7 @@ pub fn spawn_character(
             CanBeHitByProjectile,
             sprite,
             RigidBody::Dynamic,
+            Mass(800.),
             LinearVelocity::ZERO,
             LockedAxes::ROTATION_LOCKED,
             Transform::from_xyz(bundle.position.x, bundle.position.y, bundle.position.z),

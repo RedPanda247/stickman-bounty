@@ -61,7 +61,7 @@ fn fixed_look_for_player(
         let distance_to_player = enemy_pos.distance(player_pos);
 
         // If the player is on the same cordinates af the player then obviously it sees the player
-        if distance_to_player == 0.0 {
+        if player_pos - enemy_pos == Vec2::ZERO {
             commands.entity(enemy_entity).insert(EnemySeesPlayer);
             continue;
         }

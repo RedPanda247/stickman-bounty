@@ -294,27 +294,22 @@ pub fn load_level_entities(
                 let ground_width = 10000.;
 
                 // Player
-                commands.spawn((
-                    Player,
-                    GameCharacter,
-                    CanBeHitByProjectile,
-                    Health(100.),
-                    CollisionEventsEnabled,
-                    CollidingEntities::default(),
-                    CanDash,
-                    CanGrapple,
-                    GameEntity::LevelEntity,
-                    Sprite {
-                        color: Color::srgb(0.0, 0.0, 0.0),
-                        custom_size: Some(Vec2::new(character_width, character_height)),
-                        ..default()
+                spawn_character(
+                    commands,
+                    CharacterBundle {
+                        size: vec2(character_width, character_height),
+                        position: vec3(0., 400., 0.),
+                        color: Color::WHITE,
+                        custom_sprite: None,
                     },
-                    RigidBody::Dynamic,
-                    LinearVelocity::ZERO,
-                    LockedAxes::ROTATION_LOCKED,
-                    Transform::from_xyz(0., 400., 0.),
-                    Collider::rectangle(character_width, character_height),
-                ));
+                    (
+                        Player,
+                        CanDash,
+                        CanGrapple,
+                        Health(100.),
+                        CollidingEntities::default(),
+                    ),
+                );
                 commands.spawn((
                     GameEntity::LevelEntity,
                     CanBeHitByProjectile,

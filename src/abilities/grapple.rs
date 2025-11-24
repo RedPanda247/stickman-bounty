@@ -7,6 +7,8 @@ use crate::game_data::*;
 const DEFAULT_GRAPPLING_HOOK_SPRING_FORCE: f32 = 100_000.0;
 const DEFAULT_GRAPPLING_HOOK_DAMPENING: f32 = 1_000_000.0;
 const GRAPPLING_HOOK_SIZE: f32 = 20.0;
+const GRAPPLE_ENEMY_PULL_FORCE: f32 = 300000.;
+
 
 pub struct GrapplePlugin;
 impl Plugin for GrapplePlugin {
@@ -26,6 +28,11 @@ impl Plugin for GrapplePlugin {
                     damp_hook_spring_oscillation,
                     hook_follow_enemy,
                 )
+                    .run_if(in_state(GameState::PlayingLevel)),
+            )
+            .add_systems(
+                Update,
+                (draw_grapple_line,)
                     .run_if(in_state(GameState::PlayingLevel)),
             )
             .add_systems(FixedLast, (fixed_attach_grappling_hook,));
@@ -261,12 +268,41 @@ fn hook_follow_enemy(
         }
     }
 }
+
+fn draw_grapple_line(
+    mut gizmos: Gizmos,
+    swinging_query: Query<(&Transform, &Swinging)>,
+    pulling_query: Query<(&Transform, &PullingEnemy)>,
+    hook_transform_query: Query<&Transform, With<GrapplingHook>>,
+) {
+    // Draw line from swinging entities to hook
+    for (entity_transform, swinging) in swinging_query.iter() {
+        if let Ok(hook_transform) = hook_transform_query.get(swinging.hook_entity) {
+            gizmos.line_2d(
+                entity_transform.translation.truncate(),
+                hook_transform.translation.truncate(),
+                Color::WHITE,
+            );
+        }
+    }
+    
+    // Draw line from entities pulling enemies to hook
+    for (entity_transform, pulling_enemy) in pulling_query.iter() {
+        if let Ok(hook_transform) = hook_transform_query.get(pulling_enemy.hook_entity) {
+            gizmos.line_2d(
+                entity_transform.translation.truncate(),
+                hook_transform.translation.truncate(),
+                Color::WHITE,
+            );
+        }
+    }
+}
+
 #[derive(EntityEvent)]
 pub struct EndGrapple {
     pub entity: Entity,
 }
 
-const GRAPPLE_ENEMY_PULL_FORCE: f32 = 3000000.;
 fn end_grapple_event_observer(
     end_grapple_event: On<EndGrapple>,
     entity_pulling_enemy: Query<(Entity, &PullingEnemy, &Transform)>,
