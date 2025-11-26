@@ -2,8 +2,12 @@ use avian2d::prelude::*;
 use bevy::{ecs::relationship::RelationshipSourceCollection, prelude::*};
 
 use crate::game_data::*;
+use crate::level::FacingDirection;
 use crate::player::*;
 use crate::projectiles::*;
+
+const FOLLOW_PLAYER_FORCE: f32 = 1_500_000.;
+const STOP_FOLLOWING_PLAYER_DISTANCE: f32 = 400.;
 
 #[derive(Component)]
 pub struct BountyTarget;
@@ -35,9 +39,36 @@ impl Plugin for EnemyPlugin {
                 check_if_ready_to_shoot,
                 shoot_player,
                 enemy_die,
+                walk_towards_player,
             )
                 .run_if(in_state(GameState::PlayingLevel)),
         );
+    }
+}
+
+fn walk_towards_player(
+    mut enemy_qy: Query<
+        (Forces, &Transform, &mut FacingDirection),
+        (With<Enemy>, With<EnemySeesPlayer>),
+    >,
+    player_transform_qy: Query<&Transform, With<Player>>,
+) {
+    if let Ok(player_transform) = player_transform_qy.single() {
+        for (mut force, transform, mut facing_direction) in enemy_qy.iter_mut() {
+            let player_pos = player_transform.translation.truncate();
+            let enemy_pos = transform.translation.truncate();
+            let delta_pos = player_pos - enemy_pos;
+            let distance = delta_pos.length();
+            if distance > STOP_FOLLOWING_PLAYER_DISTANCE {
+                let direction = delta_pos / distance;
+                force.apply_force(direction * FOLLOW_PLAYER_FORCE);
+                if direction.x > 0. {
+                    *facing_direction = FacingDirection::Right;
+                } else {
+                    *facing_direction = FacingDirection::Left;
+                }
+            }
+        }
     }
 }
 
