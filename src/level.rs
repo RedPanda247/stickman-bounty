@@ -287,7 +287,6 @@ pub fn load_level_entities(
     match level {
         LevelIdentifier::Id(id) => {
             if id == 1 {
-                let default_character_size = 40.;
                 let character_width = 60.;
                 let character_height = 100.;
                 let ground_height = 100.;
@@ -300,7 +299,11 @@ pub fn load_level_entities(
                         size: vec2(character_width, character_height),
                         position: vec3(0., 400., 0.),
                         color: Color::WHITE,
-                        custom_sprite: None,
+                        custom_sprite: Some(Sprite {
+                            custom_size: Some(vec2(character_width, character_height)),
+                            image: asset_server.load("Enemy.png"),
+                            ..default()
+                        }),
                     },
                     (
                         Player,
