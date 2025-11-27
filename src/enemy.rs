@@ -49,7 +49,7 @@ impl Plugin for EnemyPlugin {
 fn walk_towards_player(
     mut enemy_qy: Query<
         (Forces, &Transform, &mut FacingDirection),
-        (With<Enemy>, With<EnemySeesPlayer>),
+        (With<Enemy>, With<EnemySeesPlayer>, Without<BountyTarget>),
     >,
     player_transform_qy: Query<&Transform, With<Player>>,
 ) {

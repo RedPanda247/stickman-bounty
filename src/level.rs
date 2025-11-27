@@ -233,34 +233,45 @@ fn spawn_level_complete_ui(mut commands: Commands) {
             flex_direction: FlexDirection::Column,
             ..default()
         },
-        children![(
-            LevelUiButton::ReturnToMainMenu,
-            GrowOnHover,
-            Button,
-            BorderColor::all(Color::WHITE),
-            BorderRadius::MAX,
-            BackgroundColor(Color::BLACK),
-            Node {
-                width: Val::Auto,
-                height: Val::Auto,
-                padding: UiRect::all(Val::Px(10.)),
-                border: UiRect::all(Val::Px(5.0)),
-                // horizontally center child text
-                justify_content: JustifyContent::Center,
-                // vertically center child text
-                align_items: AlignItems::Center,
-                ..default()
-            },
-            children![(
-                Text::new("Back to main menu"),
+        children![
+            (
+                LevelUiButton::ReturnToMainMenu,
+                GrowOnHover,
+                Button,
+                BorderColor::all(Color::WHITE),
+                BorderRadius::MAX,
+                BackgroundColor(Color::BLACK),
+                Node {
+                    width: Val::Auto,
+                    height: Val::Auto,
+                    padding: UiRect::all(Val::Px(10.)),
+                    border: UiRect::all(Val::Px(5.0)),
+                    // horizontally center child text
+                    justify_content: JustifyContent::Center,
+                    // vertically center child text
+                    align_items: AlignItems::Center,
+                    ..default()
+                },
+                children![(
+                    Text::new("Back to main menu"),
+                    TextFont {
+                        font_size: 33.0,
+                        ..default()
+                    },
+                    TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                    TextShadow::default(),
+                )],
+            ),
+            (
+                Text::new("Level Complete"),
                 TextFont {
-                    font_size: 33.0,
+                    font_size: 50.0,
                     ..default()
                 },
                 TextColor(Color::srgb(0.9, 0.9, 0.9)),
                 TextShadow::default(),
-            )],
-        )],
+            )
+        ],
     ));
 }
 
@@ -286,6 +297,7 @@ pub fn load_level_entities(
 ) {
     match level {
         LevelIdentifier::Id(id) => {
+            dbg!(format!("Checking level to load, Id:  {id}"));
             if id == 1 {
                 let character_width = 60.;
                 let character_height = 100.;
@@ -441,6 +453,249 @@ pub fn load_level_entities(
                         // BorderColor::all(Color::WHITE),
                         // BorderRadius::MAX,
                         // BackgroundColor(Color::BLACK),
+                        children![
+                            (
+                                Text::new("Health: "),
+                                TextFont {
+                                    font_size: 33.0,
+                                    ..default()
+                                },
+                                TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                                TextShadow::default(),
+                            ),
+                            (
+                                PlayerHealthUi,
+                                Text::new(""),
+                                TextFont {
+                                    font_size: 33.0,
+                                    ..default()
+                                },
+                                TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                                TextShadow::default(),
+                            )
+                        ],
+                    )],
+                ));
+            } else if id == 2 {
+                dbg!("Loading level 2");
+                let character_width = 60.;
+                let character_height = 100.;
+
+                // Player
+                spawn_character(
+                    commands,
+                    CharacterBundle {
+                        size: vec2(character_width, character_height),
+                        position: vec3(-500., 200., 0.),
+                        color: Color::WHITE,
+                        custom_sprite: Some(Sprite {
+                            custom_size: Some(vec2(character_width, character_height)),
+                            image: asset_server.load("Enemy.png"),
+                            ..default()
+                        }),
+                    },
+                    (
+                        Player,
+                        CanDash,
+                        CanGrapple,
+                        Health(100.),
+                        CollidingEntities::default(),
+                    ),
+                );
+
+                // Ground platforms
+                commands.spawn((
+                    GameEntity::LevelEntity,
+                    CanBeHitByProjectile,
+                    Sprite {
+                        color: Color::srgb(0.0, 0.0, 0.0),
+                        custom_size: Some(Vec2::new(8000., 100.)),
+                        image: asset_server.load("example.png"),
+                        image_mode: SpriteImageMode::Tiled {
+                            tile_x: true,
+                            tile_y: true,
+                            stretch_value: 1.,
+                        },
+                        ..Default::default()
+                    },
+                    RigidBody::Static,
+                    Transform::from_xyz(0., -200., 0.),
+                    Collider::rectangle(8000., 100.),
+                ));
+
+                // Mid-level platform 1
+                commands.spawn((
+                    GameEntity::LevelEntity,
+                    CanBeHitByProjectile,
+                    Sprite {
+                        color: Color::srgb(0.0, 0.0, 0.0),
+                        custom_size: Some(Vec2::new(300., 30.)),
+                        image: asset_server.load("example.png"),
+                        image_mode: SpriteImageMode::Tiled {
+                            tile_x: true,
+                            tile_y: true,
+                            stretch_value: 1.,
+                        },
+                        ..Default::default()
+                    },
+                    RigidBody::Static,
+                    Transform::from_xyz(200., 100., 0.),
+                    Collider::rectangle(300., 30.),
+                ));
+
+                // Mid-level platform 2
+                commands.spawn((
+                    GameEntity::LevelEntity,
+                    CanBeHitByProjectile,
+                    Sprite {
+                        color: Color::srgb(0.0, 0.0, 0.0),
+                        custom_size: Some(Vec2::new(300., 30.)),
+                        image: asset_server.load("example.png"),
+                        image_mode: SpriteImageMode::Tiled {
+                            tile_x: true,
+                            tile_y: true,
+                            stretch_value: 1.,
+                        },
+                        ..Default::default()
+                    },
+                    RigidBody::Static,
+                    Transform::from_xyz(700., 250., 0.),
+                    Collider::rectangle(300., 30.),
+                ));
+
+                // High platform (for grappling challenge)
+                commands.spawn((
+                    GameEntity::LevelEntity,
+                    CanBeHitByProjectile,
+                    Sprite {
+                        color: Color::srgb(0.0, 0.0, 0.0),
+                        custom_size: Some(Vec2::new(400., 30.)),
+                        image: asset_server.load("example.png"),
+                        image_mode: SpriteImageMode::Tiled {
+                            tile_x: true,
+                            tile_y: true,
+                            stretch_value: 1.,
+                        },
+                        ..Default::default()
+                    },
+                    RigidBody::Static,
+                    Transform::from_xyz(1300., 450., 0.),
+                    Collider::rectangle(400., 30.),
+                ));
+
+                // Vertical wall obstacle
+                commands.spawn((
+                    GameEntity::LevelEntity,
+                    CanBeHitByProjectile,
+                    Sprite {
+                        color: Color::srgb(0.0, 0.0, 0.0),
+                        custom_size: Some(Vec2::new(50., 600.)),
+                        image: asset_server.load("example.png"),
+                        image_mode: SpriteImageMode::Tiled {
+                            tile_x: true,
+                            tile_y: true,
+                            stretch_value: 1.,
+                        },
+                        ..Default::default()
+                    },
+                    RigidBody::Static,
+                    Transform::from_xyz(450., 150., 0.),
+                    Collider::rectangle(50., 600.),
+                ));
+
+                // Spawn enemies with varied positions
+                // Ground level enemies
+                spawn_character(
+                    commands,
+                    CharacterBundle {
+                        size: vec2(character_width, character_height),
+                        position: vec3(600., 400., 0.),
+                        color: Color::srgb(8.0, 0.0, 0.0),
+                        custom_sprite: Some(Sprite {
+                            custom_size: Some(vec2(character_width, character_height)),
+                            image: asset_server.load("Enemy.png"),
+                            ..default()
+                        }),
+                    },
+                    (
+                        Enemy,
+                        Health(100.),
+                        ShootCooldown {
+                            cooldown: 1.5,
+                            cooldown_start: None,
+                        },
+                    ),
+                );
+
+                // Mid-platform enemy
+                spawn_character(
+                    commands,
+                    CharacterBundle {
+                        size: vec2(character_width, character_height),
+                        position: vec3(1100., 550., 0.),
+                        color: Color::srgb(8.0, 0.0, 0.0),
+                        custom_sprite: Some(Sprite {
+                            custom_size: Some(vec2(character_width, character_height)),
+                            image: asset_server.load("Enemy.png"),
+                            ..default()
+                        }),
+                    },
+                    (
+                        Enemy,
+                        Health(100.),
+                        ShootCooldown {
+                            cooldown: 1.2,
+                            cooldown_start: None,
+                        },
+                    ),
+                );
+
+                // High platform bounty target
+                spawn_character(
+                    commands,
+                    CharacterBundle {
+                        size: vec2(character_width, character_height),
+                        position: vec3(1300., 750., 0.),
+                        color: Color::srgb(8.0, 0.0, 8.0),
+                        custom_sprite: Some(Sprite {
+                            custom_size: Some(vec2(character_width, character_height)),
+                            image: asset_server.load("Enemy.png"),
+                            ..default()
+                        }),
+                    },
+                    (
+                        Enemy,
+                        BountyTarget,
+                        Health(150.),
+                        ShootCooldown {
+                            cooldown: 2.0,
+                            cooldown_start: None,
+                        },
+                    ),
+                );
+
+                // Spawn Player UI
+                commands.spawn((
+                    GameEntity::LevelEntity,
+                    Node {
+                        width: Val::Percent(100.0),
+                        height: Val::Percent(100.0),
+                        align_items: AlignItems::End,
+                        align_content: AlignContent::SpaceAround,
+                        justify_content: JustifyContent::Start,
+                        flex_direction: FlexDirection::Row,
+                        ..default()
+                    },
+                    children![(
+                        Node {
+                            width: Val::Auto,
+                            height: Val::Auto,
+                            padding: UiRect::all(Val::Px(10.)),
+                            border: UiRect::all(Val::Px(5.0)),
+                            justify_content: JustifyContent::Center,
+                            align_items: AlignItems::Center,
+                            ..default()
+                        },
                         children![
                             (
                                 Text::new("Health: "),

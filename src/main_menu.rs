@@ -24,17 +24,17 @@ impl Plugin for MainMenuPlugin {
 
 fn main_menu_buttons(
     mut qy_main_menu_buttons: Query<
-        (&Interaction, &MainMenuButton),
+        (&Interaction, &StartLevelButton),
         (Changed<Interaction>, With<Button>),
     >,
     mut ev_load_game_state: MessageWriter<LoadGameState>,
 ) {
-    for (interaction, button) in &mut qy_main_menu_buttons {
+    for (interaction, button_type) in &mut qy_main_menu_buttons {
         if let Interaction::Pressed = interaction {
-            match button {
-                MainMenuButton::StartGame => {
+            match button_type {
+                StartLevelButton(LevelIdentifier::Id(id)) => {
                     ev_load_game_state.write(LoadGameState {
-                        game_state_to_load: LoadableGameStates::Level(LevelIdentifier::Id(1)),
+                        game_state_to_load: LoadableGameStates::Level(LevelIdentifier::Id(*id)),
                         loading_screen: LoadingScreen::Basic,
                     });
                 }
@@ -64,6 +64,9 @@ fn grow_on_hover(
     }
 }
 
+#[derive(Component)]
+struct StartLevelButton(LevelIdentifier);
+
 pub fn load_main_menu_entities(commands: &mut Commands) {
     commands.spawn((
         GameEntity::MainMenuEntity,
@@ -88,12 +91,10 @@ pub fn load_main_menu_entities(commands: &mut Commands) {
         },
         Name::new("main menu ui root"),
         children![(
-            // Transform::default(),
             GrowOnHover,
-            MainMenuButton::StartGame,
+            StartLevelButton(LevelIdentifier::Id(1)),
             Button,
             Node {
-                
                 width: Val::Auto,
                 height: Val::Auto,
                 padding: UiRect::all(Val::Px(10.)),
@@ -108,7 +109,34 @@ pub fn load_main_menu_entities(commands: &mut Commands) {
             BorderRadius::MAX,
             BackgroundColor(Color::BLACK),
             children![(
-                Text::new("Start game"),
+                Text::new("Start level 1"),
+                TextFont {
+                    font_size: 33.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                TextShadow::default(),
+            )]
+        ),(
+            GrowOnHover,
+            StartLevelButton(LevelIdentifier::Id(2)),
+            Button,
+            Node {
+                width: Val::Auto,
+                height: Val::Auto,
+                padding: UiRect::all(Val::Px(10.)),
+                border: UiRect::all(Val::Px(5.0)),
+                // horizontally center child text
+                justify_content: JustifyContent::Center,
+                // vertically center child text
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            BorderColor::all(Color::WHITE),
+            BorderRadius::MAX,
+            BackgroundColor(Color::BLACK),
+            children![(
+                Text::new("Start level 2"),
                 TextFont {
                     font_size: 33.0,
                     ..default()

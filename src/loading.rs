@@ -192,7 +192,7 @@ fn spawn_content_by_state_being_loaded(
     match &game_state_being_loaded.0 {
         LoadableGameStates::Level(level_identifier) => match level_identifier {
             LevelIdentifier::Id(id) => {
-                message_writer.write(LoadLevelEntities { level: LevelIdentifier::Id(1) });
+                message_writer.write(LoadLevelEntities { level: LevelIdentifier::Id(*id) });
             }
         },
         LoadableGameStates::MainMenu => {
