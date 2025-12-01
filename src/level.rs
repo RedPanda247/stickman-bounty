@@ -322,11 +322,13 @@ pub fn load_level_entities(
                         CanDash,
                         CanGrapple,
                         Health(100.),
+                        JumpsLeft(2),
                         CollidingEntities::default(),
                     ),
                 );
                 commands.spawn((
                     GameEntity::LevelEntity,
+                    Ground,
                     CanBeHitByProjectile,
                     Sprite {
                         color: Color::srgb(0.0, 0.0, 0.0),
@@ -345,6 +347,7 @@ pub fn load_level_entities(
                 ));
                 commands.spawn((
                     GameEntity::LevelEntity,
+                    Ground,
                     CanBeHitByProjectile,
                     Sprite {
                         color: Color::srgb(0.0, 0.0, 0.0),
@@ -499,6 +502,7 @@ pub fn load_level_entities(
                         CanDash,
                         CanGrapple,
                         Health(100.),
+                        JumpsLeft(2),
                         CollidingEntities::default(),
                     ),
                 );
@@ -506,6 +510,7 @@ pub fn load_level_entities(
                 // Ground platforms
                 commands.spawn((
                     GameEntity::LevelEntity,
+                    Ground,
                     CanBeHitByProjectile,
                     Sprite {
                         color: Color::srgb(0.0, 0.0, 0.0),

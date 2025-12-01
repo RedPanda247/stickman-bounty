@@ -5,6 +5,7 @@ use bevy::prelude::*;
 use crate::abilities::*;
 use crate::enemy::*;
 use crate::game_data::*;
+use crate::level::FacingDirection;
 use crate::projectiles::*;
 
 pub struct PlayerPlugin;
@@ -22,6 +23,8 @@ impl Plugin for PlayerPlugin {
                 end_grapple_input,
                 player_shoot_input,
                 player_health_ui,
+                look_in_walk_direction,
+                reset_jumps_on_ground,
             )
                 .run_if(in_state(GameState::PlayingLevel)),
         )
@@ -39,14 +42,16 @@ impl Plugin for PlayerPlugin {
 #[derive(Component)]
 pub struct PlayerHealthUi;
 
-fn player_health_ui(mut ui_qy: Query<&mut Text, With<PlayerHealthUi>>, player_qy: Query<&Health, With<Player>>) {
+fn player_health_ui(
+    mut ui_qy: Query<&mut Text, With<PlayerHealthUi>>,
+    player_qy: Query<&Health, With<Player>>,
+) {
     if let Ok(player_health) = player_qy.single() {
         for mut health_ui in ui_qy.iter_mut() {
             health_ui.0 = player_health.0.round().to_string();
         }
     }
 }
-
 
 const PLAYER_PROJECTILE_DAMAGE: f32 = 20.;
 
@@ -120,21 +125,82 @@ impl Default for MovementModifiers {
     }
 }
 
+fn look_in_walk_direction(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut player_dir_qy: Query<&mut FacingDirection, With<Player>>,
+) {
+    let mut input_direction: Option<FacingDirection> = None;
+    if keyboard_input.any_pressed([KeyCode::KeyD, KeyCode::ArrowRight]) {
+        input_direction = Some(FacingDirection::Right);
+    } else if keyboard_input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]) {
+        input_direction = Some(FacingDirection::Left);
+    }
+    if let Some(dir_ref) = input_direction.as_ref() {
+        for mut player_dir in player_dir_qy.iter_mut() {
+            *player_dir = match dir_ref {
+                FacingDirection::Right => FacingDirection::Right,
+                FacingDirection::Left => FacingDirection::Left,
+            }
+        }
+    }
+}
+
+fn reset_jumps_on_ground(
+    mut player_qy: Query<
+        (
+            &Transform,
+            &LinearVelocity,
+            &CollidingEntities,
+            &mut JumpsLeft,
+        ),
+        With<Player>,
+    >,
+    ground_qy: Query<&Transform, With<Ground>>,
+) {
+    for (player_transform, velocity, colliding_entities, mut jumps_left) in player_qy.iter_mut() {
+        let player_y = player_transform.translation.y;
+        let mut is_grounded = false;
+
+        // Check if the player is colliding with ground and is above it (or at same level falling)
+        for &ground_entity in colliding_entities.iter() {
+            if let Ok(ground_transform) = ground_qy.get(ground_entity) {
+                let ground_y = ground_transform.translation.y;
+                // Only consider grounded if player is at or above the ground and falling/stationary
+                if player_y >= ground_y && velocity.y <= 0.0 {
+                    is_grounded = true;
+                    break;
+                }
+            }
+        }
+
+        if is_grounded {
+            jumps_left.0 = 2;
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct Ground;
+
+#[derive(Component)]
+pub struct JumpsLeft(pub i8);
+
 #[derive(Component)]
 pub struct Player;
 
 pub fn player_movement(
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut player_info: Query<&mut LinearVelocity, With<Player>>,
+    mut player_info: Query<(&mut LinearVelocity, &mut JumpsLeft), With<Player>>,
     time: Res<Time>,
     movement_modifiers: Res<MovementModifiers>,
 ) {
-    for mut rb_vels in &mut player_info {
+    for (mut rb_vels, mut jumps_left) in player_info.iter_mut() {
         let max_running_speed =
             movement_modifiers.movement_force * movement_modifiers.max_running_speed;
 
-        if keyboard_input.any_just_pressed([KeyCode::KeyW, KeyCode::ArrowUp]) {
+        if keyboard_input.any_just_pressed([KeyCode::KeyW, KeyCode::ArrowUp]) && jumps_left.0 > 0 {
             rb_vels.y = movement_modifiers.movement_force * movement_modifiers.jumping_force;
+            jumps_left.0 -= 1;
         }
 
         let left = keyboard_input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]);
