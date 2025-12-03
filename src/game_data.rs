@@ -27,6 +27,7 @@ pub enum GameState {
     Loading,
     LevelComplete,
     LevelPaused,
+    GameOver,
 }
 
 #[derive(Component)]

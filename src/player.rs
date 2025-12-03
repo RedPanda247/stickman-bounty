@@ -25,6 +25,7 @@ impl Plugin for PlayerPlugin {
                 player_health_ui,
                 look_in_walk_direction,
                 reset_jumps_on_ground,
+                player_die,
             )
                 .run_if(in_state(GameState::PlayingLevel)),
         )
@@ -36,6 +37,18 @@ impl Plugin for PlayerPlugin {
         .insert_resource(MovementModifiers::default())
         .init_resource::<GrappleKeybind>()
         .init_resource::<GrapplingHookConfig>();
+    }
+}
+
+#[derive(Event)]
+pub struct PlayerDiedEvent;
+
+fn player_die(player_qy: Query<(Entity, &Health), With<Player>>, mut commands: Commands) {
+    if let Ok((entity, health)) = player_qy.single() {
+        if health.0 <= 0. {
+            commands.entity(entity).despawn();
+            commands.trigger(PlayerDiedEvent);
+        }
     }
 }
 
@@ -120,7 +133,7 @@ impl Default for MovementModifiers {
         MovementModifiers {
             movement_force: 4000.,
             max_running_speed: 0.2,
-            jumping_force: 0.2,
+            jumping_force: 0.25,
         }
     }
 }

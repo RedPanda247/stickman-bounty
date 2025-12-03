@@ -18,7 +18,7 @@ impl Plugin for LevelPlugin {
             .add_systems(
                 Update,
                 level_ui_button_interactions.run_if(
-                    in_state(GameState::LevelComplete).or(in_state(GameState::LevelPaused)),
+                    in_state(GameState::LevelComplete).or(in_state(GameState::LevelPaused).or(in_state(GameState::GameOver))),
                 ),
             )
             .add_systems(
@@ -27,6 +27,7 @@ impl Plugin for LevelPlugin {
             )
             .add_systems(OnExit(GameState::LevelPaused), resume_physics)
             .add_observer(close_level_menu)
+            .add_observer(detect_player_death)
             .add_systems(Update, pause_game)
             .add_systems(
                 Update,
@@ -35,8 +36,68 @@ impl Plugin for LevelPlugin {
                     flip_sprite_to_match_character_direction,
                 )
                     .run_if(in_state(GameState::PlayingLevel)),
-            );
+            )
+            .add_systems(OnEnter(GameState::GameOver), spawn_game_over_ui);
     }
+}
+
+fn detect_player_death(_: On<PlayerDiedEvent>, mut game_state: ResMut<NextState<GameState>>) {
+    game_state.set(GameState::GameOver);
+}
+
+fn spawn_game_over_ui(mut commands: Commands,) {
+    commands.spawn((
+        LevelMenuUIRoot,
+        GameEntity::LevelEntity,
+        BackgroundColor(Color::hsla(0., 0., 0., 0.5)),
+        Node {
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            align_items: AlignItems::Center,
+            align_content: AlignContent::Center,
+            justify_content: JustifyContent::Center,
+            flex_direction: FlexDirection::Column,
+            ..default()
+        },
+        children![
+            (
+                Text::new("Game Over!"),
+                Node {
+                    position_type: PositionType::Absolute,
+                    top: Val::Percent(25.),
+                    ..default()
+                }
+            ),
+            (
+                LevelUiButton::ReturnToMainMenu,
+                GrowOnHover,
+                Button,
+                BorderColor::all(Color::WHITE),
+                BorderRadius::MAX,
+                BackgroundColor(Color::BLACK),
+                Node {
+                    width: Val::Auto,
+                    height: Val::Auto,
+                    padding: UiRect::all(Val::Px(10.)),
+                    border: UiRect::all(Val::Px(5.0)),
+                    // horizontally center child text
+                    justify_content: JustifyContent::Center,
+                    // vertically center child text
+                    align_items: AlignItems::Center,
+                    ..default()
+                },
+                children![(
+                    Text::new("Back to main menu"),
+                    TextFont {
+                        font_size: 33.0,
+                        ..default()
+                    },
+                    TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                    TextShadow::default(),
+                )],
+            )
+        ],
+    ));
 }
 
 fn flip_character_to_match_direction(
@@ -290,6 +351,8 @@ pub fn ev_load_level_entities(
     }
 }
 
+const PLAYER_IMAGE_PATH: &str = "Player.png";
+
 pub fn load_level_entities(
     commands: &mut Commands,
     level: LevelIdentifier,
@@ -297,7 +360,6 @@ pub fn load_level_entities(
 ) {
     match level {
         LevelIdentifier::Id(id) => {
-            dbg!(format!("Checking level to load, Id:  {id}"));
             if id == 1 {
                 let character_width = 60.;
                 let character_height = 100.;
@@ -313,7 +375,7 @@ pub fn load_level_entities(
                         color: Color::WHITE,
                         custom_sprite: Some(Sprite {
                             custom_size: Some(vec2(character_width, character_height)),
-                            image: asset_server.load("Enemy.png"),
+                            image: asset_server.load(PLAYER_IMAGE_PATH),
                             ..default()
                         }),
                     },
@@ -493,7 +555,7 @@ pub fn load_level_entities(
                         color: Color::WHITE,
                         custom_sprite: Some(Sprite {
                             custom_size: Some(vec2(character_width, character_height)),
-                            image: asset_server.load("Enemy.png"),
+                            image: asset_server.load(PLAYER_IMAGE_PATH),
                             ..default()
                         }),
                     },
