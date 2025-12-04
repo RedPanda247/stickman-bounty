@@ -83,6 +83,8 @@ fn player_shoot_event(
     window_qy: Query<&Window>,
     camera_transform_qy: Query<(&Transform), With<Camera>>,
     mut commands: Commands,
+    mut shoot_cooldown_qy: Query<&mut ShootCooldown, With<Player>>,
+    time: Res<Time>,
 ) {
     // get window
     let window = window_qy
@@ -105,6 +107,17 @@ fn player_shoot_event(
         let mouse_world_pos = mouse_window_pos - window_size / 2.0 + camera_pos;
 
         for (entity, transform) in player_qy.iter() {
+            // If the player has a cooldown component and it has a start time and the cooldown is not done, then return and exit the system
+            if let Ok(mut shoot_cooldown) = shoot_cooldown_qy.get_mut(entity) {
+                if let Some(cooldown_start_time) = shoot_cooldown.cooldown_start {
+                    if time.elapsed_secs() - cooldown_start_time < shoot_cooldown.cooldown {
+                        return;
+                    } else {
+                        shoot_cooldown.cooldown_start = Some(time.elapsed_secs());
+                    }
+                }
+            }
+
             let direction = (mouse_world_pos - transform.translation.truncate()).normalize();
             let damage = PLAYER_PROJECTILE_DAMAGE;
             spawn_projectile(

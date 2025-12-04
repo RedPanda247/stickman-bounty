@@ -352,6 +352,7 @@ pub fn ev_load_level_entities(
 }
 
 const PLAYER_IMAGE_PATH: &str = "Player.png";
+const PLAYER_SHOOT_COOLDOWN: f32 = 0.7;
 
 pub fn load_level_entities(
     commands: &mut Commands,
@@ -384,6 +385,10 @@ pub fn load_level_entities(
                         CanDash,
                         CanGrapple,
                         Health(100.),
+                        ShootCooldown {
+                            cooldown: PLAYER_SHOOT_COOLDOWN,
+                            cooldown_start: None,
+                        },
                         JumpsLeft(2),
                         CollidingEntities::default(),
                     ),
@@ -564,6 +569,10 @@ pub fn load_level_entities(
                         CanDash,
                         CanGrapple,
                         Health(100.),
+                        ShootCooldown {
+                            cooldown: PLAYER_SHOOT_COOLDOWN,
+                            cooldown_start: None,
+                        },
                         JumpsLeft(2),
                         CollidingEntities::default(),
                     ),

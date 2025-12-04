@@ -49,12 +49,12 @@ pub struct StartGrapple {
 pub struct CanGrapple;
 
 #[derive(Component)]
-pub struct Grappling; // marker: "I'm in a grapple flow"
+pub struct Grappling;
 
 #[derive(Component)]
 pub struct Swinging {
     pub hook_entity: Entity,
-    pub anchor: Vec2, // world position of the anchor point
+    pub anchor: Vec2,
     pub rope_rest_length: f32,
     pub previous_distance_from_hook: Option<f32>,
 }
@@ -62,8 +62,8 @@ pub struct Swinging {
 #[derive(Component)]
 pub struct PullingEnemy {
     pub hook_entity: Entity,
-    pub enemy: Entity,    // enemy being pulled
-    pub rope_length: f32, // initial rope length
+    pub enemy: Entity,    
+    pub rope_length: f32,
 }
 
 #[derive(Resource)]
@@ -74,7 +74,7 @@ impl Default for GrappleKeybind {
     }
 }
 
-fn grapple_event_observer(grapple_start_event: On<StartGrapple>, mut commands: Commands) {
+fn grapple_event_observer(grapple_start_event: On<StartGrapple>, mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
         .entity(grapple_start_event.entity)
         .insert(Grappling); // marker only
@@ -83,6 +83,7 @@ fn grapple_event_observer(grapple_start_event: On<StartGrapple>, mut commands: C
         &mut commands,
         grapple_start_event.entity,
         grapple_start_event.grapple_world_target.extend(0.),
+        asset_server,
     );
 }
 #[derive(Component)]
@@ -101,7 +102,7 @@ pub struct GrappleAttachedEvent {
     attachment_type: GrapplingHookAttachmentType,
 }
 
-fn spawn_grapple(commands: &mut Commands, shooter_entity: Entity, world_position: Vec3) {
+fn spawn_grapple(commands: &mut Commands, shooter_entity: Entity, world_position: Vec3, asset_server: Res<AssetServer>) {
     commands.spawn((
         GameEntity::LevelEntity,
         GrapplingHook {
@@ -110,8 +111,8 @@ fn spawn_grapple(commands: &mut Commands, shooter_entity: Entity, world_position
         },
         Transform::from_translation(world_position),
         Sprite {
-            color: Color::WHITE,
             custom_size: Some(Vec2::splat(GRAPPLING_HOOK_SIZE)),
+            image: asset_server.load("Grapplinghook.png"),
             ..default()
         },
         Collider::rectangle(GRAPPLING_HOOK_SIZE, GRAPPLING_HOOK_SIZE),
