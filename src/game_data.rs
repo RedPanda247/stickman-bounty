@@ -1,7 +1,9 @@
 use avian2d::prelude::*;
 use bevy::prelude::*;
+use bevy::reflect::Tuple;
 
-use crate::level::FacingDirection;
+use crate::level::*;
+use crate::player::*;
 pub struct GameDataPlugin;
 
 impl Plugin for GameDataPlugin {
@@ -99,3 +101,53 @@ pub fn spawn_character(
         ))
         .id()
 }
+
+pub struct GroundSpawnData {
+    x1: f32,
+    x2: f32,
+    y1: f32,
+    y2: f32,
+}
+
+pub fn spawn_ground(
+    commands: &mut Commands,
+    asset_server: Res<AssetServer>,
+    ground_spawn_data: GroundSpawnData,
+) {
+    let GroundSpawnData { x1, x2, y1, y2 } = ground_spawn_data;
+    commands.spawn((
+        GameEntity::LevelEntity,
+        Ground,
+        CanBeHitByProjectile,
+        Sprite {
+            color: Color::srgb(0.0, 0.0, 0.0),
+            custom_size: Some(Vec2::new(x2 - x1, y2 - y1)),
+            image: asset_server.load("example.png"),
+            image_mode: SpriteImageMode::Tiled {
+                tile_x: true,
+                tile_y: true,
+                stretch_value: 1.,
+            },
+            ..Default::default()
+        },
+        RigidBody::Static,
+        Transform::from_xyz(avg([x1, x2]), avg([y1, y2]), 0.),
+        Collider::rectangle(x2 - x1, y2 - y1),
+    ));
+}
+
+fn avg<T, I>(iter: I) -> f32
+where
+    T: Into<f32> + std::ops::Add<Output = T> + Default + Copy,
+    I: IntoIterator<Item = T>,
+{
+    let items: Vec<T> = iter.into_iter().collect();
+    if items.is_empty() {
+        return 0.0;
+    }
+    
+    let sum = items.iter().copied().reduce(|a, b| a + b).unwrap_or_default();
+    sum.into() / items.len() as f32
+}
+    
+
