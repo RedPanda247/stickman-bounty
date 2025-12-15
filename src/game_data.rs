@@ -102,16 +102,27 @@ pub fn spawn_character(
         .id()
 }
 
+#[derive(Default)]
 pub struct GroundSpawnData {
     x1: f32,
     x2: f32,
     y1: f32,
     y2: f32,
 }
+impl GroundSpawnData {
+    pub fn new(x1: i32, x2: i32, y1: i32, y2: i32) -> Self {
+        GroundSpawnData { 
+            x1: x1 as f32, 
+            x2: x2 as f32, 
+            y1: y1 as f32, 
+            y2: y2 as f32, 
+        }
+    }
+}
 
 pub fn spawn_ground(
     commands: &mut Commands,
-    asset_server: Res<AssetServer>,
+    asset_server: &AssetServer,
     ground_spawn_data: GroundSpawnData,
 ) {
     let GroundSpawnData { x1, x2, y1, y2 } = ground_spawn_data;
@@ -122,7 +133,7 @@ pub fn spawn_ground(
         Sprite {
             color: Color::srgb(0.0, 0.0, 0.0),
             custom_size: Some(Vec2::new(x2 - x1, y2 - y1)),
-            image: asset_server.load("example.png"),
+            image: asset_server.load("ground.jpg"),
             image_mode: SpriteImageMode::Tiled {
                 tile_x: true,
                 tile_y: true,
@@ -145,9 +156,11 @@ where
     if items.is_empty() {
         return 0.0;
     }
-    
-    let sum = items.iter().copied().reduce(|a, b| a + b).unwrap_or_default();
+
+    let sum = items
+        .iter()
+        .copied()
+        .reduce(|a, b| a + b)
+        .unwrap_or_default();
     sum.into() / items.len() as f32
 }
-    
-

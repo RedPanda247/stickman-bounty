@@ -18,7 +18,8 @@ impl Plugin for LevelPlugin {
             .add_systems(
                 Update,
                 level_ui_button_interactions.run_if(
-                    in_state(GameState::LevelComplete).or(in_state(GameState::LevelPaused).or(in_state(GameState::GameOver))),
+                    in_state(GameState::LevelComplete)
+                        .or(in_state(GameState::LevelPaused).or(in_state(GameState::GameOver))),
                 ),
             )
             .add_systems(
@@ -45,7 +46,7 @@ fn detect_player_death(_: On<PlayerDiedEvent>, mut game_state: ResMut<NextState<
     game_state.set(GameState::GameOver);
 }
 
-fn spawn_game_over_ui(mut commands: Commands,) {
+fn spawn_game_over_ui(mut commands: Commands) {
     commands.spawn((
         LevelMenuUIRoot,
         GameEntity::LevelEntity,
@@ -393,6 +394,7 @@ pub fn load_level_entities(
                         CollidingEntities::default(),
                     ),
                 );
+                spawn_ground(commands, &asset_server, GroundSpawnData::new(300, 500, 300, 400));
                 commands.spawn((
                     GameEntity::LevelEntity,
                     Ground,
