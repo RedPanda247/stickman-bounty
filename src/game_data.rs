@@ -111,18 +111,18 @@ pub struct GroundSpawnData {
 }
 impl GroundSpawnData {
     pub fn new(x1: i32, x2: i32, y1: i32, y2: i32) -> Self {
-        GroundSpawnData { 
-            x1: x1 as f32, 
-            x2: x2 as f32, 
-            y1: y1 as f32, 
-            y2: y2 as f32, 
+        GroundSpawnData {
+            x1: x1 as f32,
+            x2: x2 as f32,
+            y1: y1 as f32,
+            y2: y2 as f32,
         }
     }
 }
 
 pub fn spawn_ground(
     commands: &mut Commands,
-    asset_server: &AssetServer,
+    image: Handle<Image>,
     ground_spawn_data: GroundSpawnData,
 ) {
     let GroundSpawnData { x1, x2, y1, y2 } = ground_spawn_data;
@@ -131,14 +131,10 @@ pub fn spawn_ground(
         Ground,
         CanBeHitByProjectile,
         Sprite {
-            color: Color::srgb(0.0, 0.0, 0.0),
+            // color: Color::srgb(0.0, 0.0, 0.0),
             custom_size: Some(Vec2::new(x2 - x1, y2 - y1)),
-            image: asset_server.load("ground.jpg"),
-            image_mode: SpriteImageMode::Tiled {
-                tile_x: true,
-                tile_y: true,
-                stretch_value: 1.,
-            },
+            image: image,
+            image_mode: SpriteImageMode::Auto,
             ..Default::default()
         },
         RigidBody::Static,

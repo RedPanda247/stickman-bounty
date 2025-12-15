@@ -394,7 +394,7 @@ pub fn load_level_entities(
                         CollidingEntities::default(),
                     ),
                 );
-                spawn_ground(commands, &asset_server, GroundSpawnData::new(300, 500, 300, 400));
+                spawn_ground(commands, asset_server.load("metal_box.png"), GroundSpawnData::new(300, 500, 300, 400));
                 commands.spawn((
                     GameEntity::LevelEntity,
                     Ground,
