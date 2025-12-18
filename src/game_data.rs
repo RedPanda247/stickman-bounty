@@ -120,6 +120,8 @@ impl GroundSpawnData {
     }
 }
 
+
+
 pub fn spawn_ground(
     commands: &mut Commands,
     image: Handle<Image>,
@@ -131,10 +133,9 @@ pub fn spawn_ground(
         Ground,
         CanBeHitByProjectile,
         Sprite {
-            // color: Color::srgb(0.0, 0.0, 0.0),
             custom_size: Some(Vec2::new(x2 - x1, y2 - y1)),
             image: image,
-            image_mode: SpriteImageMode::Auto,
+            image_mode: SpriteImageMode::Tiled { tile_x: true, tile_y: true, stretch_value: 1. },
             ..Default::default()
         },
         RigidBody::Static,

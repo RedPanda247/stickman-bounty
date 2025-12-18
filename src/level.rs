@@ -395,44 +395,16 @@ pub fn load_level_entities(
                     ),
                 );
                 spawn_ground(commands, asset_server.load("metal_box.png"), GroundSpawnData::new(300, 500, 300, 400));
-                commands.spawn((
-                    GameEntity::LevelEntity,
-                    Ground,
-                    CanBeHitByProjectile,
-                    Sprite {
-                        color: Color::srgb(0.0, 0.0, 0.0),
-                        custom_size: Some(Vec2::new(50., 800.)),
-                        image: asset_server.load("example.png"),
-                        image_mode: SpriteImageMode::Tiled {
-                            tile_x: true,
-                            tile_y: true,
-                            stretch_value: 1.,
-                        },
-                        ..Default::default()
-                    },
-                    RigidBody::Static,
-                    Transform::from_xyz(200., 0., 0.),
-                    Collider::rectangle(50., 800.),
-                ));
-                commands.spawn((
-                    GameEntity::LevelEntity,
-                    Ground,
-                    CanBeHitByProjectile,
-                    Sprite {
-                        color: Color::srgb(0.0, 0.0, 0.0),
-                        custom_size: Some(Vec2::new(ground_width, ground_height)),
-                        image: asset_server.load("example.png"),
-                        image_mode: SpriteImageMode::Tiled {
-                            tile_x: true,
-                            tile_y: true,
-                            stretch_value: 1.,
-                        },
-                        ..Default::default()
-                    },
-                    RigidBody::Static,
-                    Transform::from_xyz(0., -100., 0.),
-                    Collider::rectangle(ground_width, ground_height),
-                ));
+                spawn_ground(
+                    commands,
+                    asset_server.load("metal_box.png"),
+                    GroundSpawnData::new(175, 225, -400, 400)
+                );
+                spawn_ground(
+                    commands,
+                    asset_server.load("metal_box.png"),
+                    GroundSpawnData::new(-5000, 5000, -150, -50)
+                );
                 // Spawn enemies
                 spawn_character(
                     commands,
@@ -549,7 +521,6 @@ pub fn load_level_entities(
                     )],
                 ));
             } else if id == 2 {
-                dbg!("Loading level 2");
                 let character_width = 60.;
                 let character_height = 100.;
 
@@ -581,105 +552,39 @@ pub fn load_level_entities(
                 );
 
                 // Ground platforms
-                commands.spawn((
-                    GameEntity::LevelEntity,
-                    Ground,
-                    CanBeHitByProjectile,
-                    Sprite {
-                        color: Color::srgb(0.0, 0.0, 0.0),
-                        custom_size: Some(Vec2::new(8000., 100.)),
-                        image: asset_server.load("example.png"),
-                        image_mode: SpriteImageMode::Tiled {
-                            tile_x: true,
-                            tile_y: true,
-                            stretch_value: 1.,
-                        },
-                        ..Default::default()
-                    },
-                    RigidBody::Static,
-                    Transform::from_xyz(0., -200., 0.),
-                    Collider::rectangle(8000., 100.),
-                ));
+                spawn_ground(
+                    commands,
+                    asset_server.load("metal_box.png"),
+                    GroundSpawnData::new(-4000, 4000, -250, -150)
+                );
 
                 // Mid-level platform 1
-                commands.spawn((
-                    GameEntity::LevelEntity,
-                    CanBeHitByProjectile,
-                    Sprite {
-                        color: Color::srgb(0.0, 0.0, 0.0),
-                        custom_size: Some(Vec2::new(300., 30.)),
-                        image: asset_server.load("example.png"),
-                        image_mode: SpriteImageMode::Tiled {
-                            tile_x: true,
-                            tile_y: true,
-                            stretch_value: 1.,
-                        },
-                        ..Default::default()
-                    },
-                    RigidBody::Static,
-                    Transform::from_xyz(200., 100., 0.),
-                    Collider::rectangle(300., 30.),
-                ));
+                spawn_ground(
+                    commands,
+                    asset_server.load("metal_box.png"),
+                    GroundSpawnData::new(50, 450, 85, 115)
+                );
 
                 // Mid-level platform 2
-                commands.spawn((
-                    GameEntity::LevelEntity,
-                    CanBeHitByProjectile,
-                    Sprite {
-                        color: Color::srgb(0.0, 0.0, 0.0),
-                        custom_size: Some(Vec2::new(300., 30.)),
-                        image: asset_server.load("example.png"),
-                        image_mode: SpriteImageMode::Tiled {
-                            tile_x: true,
-                            tile_y: true,
-                            stretch_value: 1.,
-                        },
-                        ..Default::default()
-                    },
-                    RigidBody::Static,
-                    Transform::from_xyz(700., 250., 0.),
-                    Collider::rectangle(300., 30.),
-                ));
+                spawn_ground(
+                    commands,
+                    asset_server.load("metal_box.png"),
+                    GroundSpawnData::new(550, 850, 235, 265)
+                );
 
                 // High platform (for grappling challenge)
-                commands.spawn((
-                    GameEntity::LevelEntity,
-                    CanBeHitByProjectile,
-                    Sprite {
-                        color: Color::srgb(0.0, 0.0, 0.0),
-                        custom_size: Some(Vec2::new(400., 30.)),
-                        image: asset_server.load("example.png"),
-                        image_mode: SpriteImageMode::Tiled {
-                            tile_x: true,
-                            tile_y: true,
-                            stretch_value: 1.,
-                        },
-                        ..Default::default()
-                    },
-                    RigidBody::Static,
-                    Transform::from_xyz(1300., 450., 0.),
-                    Collider::rectangle(400., 30.),
-                ));
+                spawn_ground(
+                    commands,
+                    asset_server.load("metal_box.png"),
+                    GroundSpawnData::new(1100, 1500, -15, 15)
+                );
 
                 // Vertical wall obstacle
-                commands.spawn((
-                    GameEntity::LevelEntity,
-                    CanBeHitByProjectile,
-                    Sprite {
-                        color: Color::srgb(0.0, 0.0, 0.0),
-                        custom_size: Some(Vec2::new(50., 600.)),
-                        image: asset_server.load("example.png"),
-                        image_mode: SpriteImageMode::Tiled {
-                            tile_x: true,
-                            tile_y: true,
-                            stretch_value: 1.,
-                        },
-                        ..Default::default()
-                    },
-                    RigidBody::Static,
-                    Transform::from_xyz(450., 150., 0.),
-                    Collider::rectangle(50., 600.),
-                ));
+                spawn_ground(
+                    commands,
+                    asset_server.load("metal_box.png"),
+                    GroundSpawnData::new(425, 475, -300, 300)
+                );
 
                 // Spawn enemies with varied positions
                 // Ground level enemies
@@ -737,7 +642,7 @@ pub fn load_level_entities(
                         color: Color::srgb(8.0, 0.0, 8.0),
                         custom_sprite: Some(Sprite {
                             custom_size: Some(vec2(character_width, character_height)),
-                            image: asset_server.load("Enemy.png"),
+                            image: asset_server.load("Target.png"),
                             ..default()
                         }),
                     },
