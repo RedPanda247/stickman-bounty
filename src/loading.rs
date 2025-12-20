@@ -196,7 +196,7 @@ fn spawn_content_by_state_being_loaded(
             }
         },
         LoadableGameStates::MainMenu => {
-            load_main_menu_entities(&mut commands);
+            commands.trigger(LoadMainMenuEntities);
         }
     }
 }
