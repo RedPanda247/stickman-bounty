@@ -38,9 +38,13 @@ impl Plugin for LevelPlugin {
                 )
                     .run_if(in_state(GameState::PlayingLevel)),
             )
-            .add_systems(OnEnter(GameState::GameOver), spawn_game_over_ui);
+            .add_systems(OnEnter(GameState::GameOver), spawn_game_over_ui)
+            .insert_resource(LatestUnlockedLevel(1));
     }
 }
+
+#[derive(Resource)]
+pub struct LatestUnlockedLevel(pub i8);
 
 fn detect_player_death(_: On<PlayerDiedEvent>, mut game_state: ResMut<NextState<GameState>>) {
     game_state.set(GameState::GameOver);
