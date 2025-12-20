@@ -18,7 +18,8 @@ impl Plugin for MainMenuPlugin {
             .add_systems(
             Update,
             main_menu_buttons.run_if(in_state(GameState::MainMenu)),
-        );
+        )
+        .add_observer(load_main_menu_entities);
     }
 }
 
@@ -67,9 +68,12 @@ fn grow_on_hover(
 #[derive(Component)]
 struct StartLevelButton(LevelIdentifier);
 
-pub fn load_main_menu_entities(commands: &mut Commands) {
+#[derive(Event)]
+pub struct LoadMainMenuEntities;
 
-    
+pub fn load_main_menu_entities(_: On<LoadMainMenuEntities>, mut commands: Commands) {
+
+
 
     commands.spawn((
         GameEntity::MainMenuEntity,
