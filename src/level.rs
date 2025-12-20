@@ -456,7 +456,7 @@ pub fn load_level_entities(
                         color: Color::srgb(8.0, 0.0, 8.0),
                         custom_sprite: Some(Sprite {
                             custom_size: Some(vec2(character_width, character_height)),
-                            image: asset_server.load("Enemy.png"),
+                            image: asset_server.load("Target.png"),
                             ..default()
                         }),
                     },

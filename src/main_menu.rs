@@ -68,6 +68,9 @@ fn grow_on_hover(
 struct StartLevelButton(LevelIdentifier);
 
 pub fn load_main_menu_entities(commands: &mut Commands) {
+
+    
+
     commands.spawn((
         GameEntity::MainMenuEntity,
         Text2d::new("Stickman Bounty"),
