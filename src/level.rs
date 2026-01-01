@@ -14,7 +14,13 @@ impl Plugin for LevelPlugin {
         app.add_message::<LoadLevelEntities>()
             // Message reader
             .add_systems(Update, ev_load_level_entities)
-            .add_systems(OnEnter(GameState::LevelComplete), spawn_level_complete_ui)
+            .add_systems(
+                OnEnter(GameState::LevelComplete),
+                (
+                    spawn_level_complete_ui,
+                    update_unlocked_level_on_level_completion,
+                ),
+            )
             .add_systems(
                 Update,
                 level_ui_button_interactions.run_if(
@@ -39,12 +45,43 @@ impl Plugin for LevelPlugin {
                     .run_if(in_state(GameState::PlayingLevel)),
             )
             .add_systems(OnEnter(GameState::GameOver), spawn_game_over_ui)
-            .insert_resource(LatestUnlockedLevel(1));
+            .insert_resource(LatestUnlockedLevel(1))
+            .add_systems(
+                OnEnter(GameState::PlayingLevel),
+                save_id_of_level_being_loaded,
+            );
+    }
+}
+
+fn update_unlocked_level_on_level_completion(
+    mut latest_unlocked_level: ResMut<LatestUnlockedLevel>,
+    playing_level: Res<PlayingLevel>,
+) {
+    if let Some(playing_level) = playing_level.0 {
+        if playing_level >= latest_unlocked_level.0 {
+            latest_unlocked_level.0 = playing_level + 1;
+        }
+    }
+}
+
+fn save_id_of_level_being_loaded(
+    game_state_being_loaded: Res<GameStateBeingLoaded>,
+    mut playing_level: ResMut<PlayingLevel>,
+) {
+    match &game_state_being_loaded.0 {
+        LoadableGameStates::Level(level_identifier) => match level_identifier {
+            LevelIdentifier::Id(id) => {
+                playing_level.0 = Some(*id);
+            }
+        },
+        LoadableGameStates::MainMenu => {
+            playing_level.0 = None;
+        }
     }
 }
 
 #[derive(Resource)]
-pub struct LatestUnlockedLevel(pub i8);
+pub struct LatestUnlockedLevel(pub u8);
 
 fn detect_player_death(_: On<PlayerDiedEvent>, mut game_state: ResMut<NextState<GameState>>) {
     game_state.set(GameState::GameOver);
@@ -398,16 +435,20 @@ pub fn load_level_entities(
                         CollidingEntities::default(),
                     ),
                 );
-                spawn_ground(commands, asset_server.load("metal_box.png"), GroundSpawnData::new(300, 500, 300, 400));
                 spawn_ground(
                     commands,
-                    asset_server.load("metal_box.png"),
-                    GroundSpawnData::new(175, 225, -400, 400)
+                    asset_server.load("metal_box_small.png"),
+                    GroundSpawnData::new(300, 500, 300, 400),
                 );
                 spawn_ground(
                     commands,
-                    asset_server.load("metal_box.png"),
-                    GroundSpawnData::new(-5000, 5000, -150, -50)
+                    asset_server.load("metal_box_small.png"),
+                    GroundSpawnData::new(175, 225, -400, 400),
+                );
+                spawn_ground(
+                    commands,
+                    asset_server.load("metal_box_small.png"),
+                    GroundSpawnData::new(-5000, 5000, -150, -50),
                 );
                 // Spawn enemies
                 spawn_character(
@@ -558,36 +599,36 @@ pub fn load_level_entities(
                 // Ground platforms
                 spawn_ground(
                     commands,
-                    asset_server.load("metal_box.png"),
-                    GroundSpawnData::new(-4000, 4000, -250, -150)
+                    asset_server.load("metal_box_small.png"),
+                    GroundSpawnData::new(-4000, 4000, -250, -150),
                 );
 
                 // Mid-level platform 1
                 spawn_ground(
                     commands,
-                    asset_server.load("metal_box.png"),
-                    GroundSpawnData::new(50, 450, 85, 115)
+                    asset_server.load("metal_box_small.png"),
+                    GroundSpawnData::new(50, 450, 85, 115),
                 );
 
                 // Mid-level platform 2
                 spawn_ground(
                     commands,
-                    asset_server.load("metal_box.png"),
-                    GroundSpawnData::new(550, 850, 235, 265)
+                    asset_server.load("metal_box_small.png"),
+                    GroundSpawnData::new(550, 850, 235, 265),
                 );
 
                 // High platform (for grappling challenge)
                 spawn_ground(
                     commands,
-                    asset_server.load("metal_box.png"),
-                    GroundSpawnData::new(1100, 1500, -15, 15)
+                    asset_server.load("metal_box_small.png"),
+                    GroundSpawnData::new(1100, 1500, -15, 15),
                 );
 
                 // Vertical wall obstacle
                 spawn_ground(
                     commands,
-                    asset_server.load("metal_box.png"),
-                    GroundSpawnData::new(425, 475, -300, 300)
+                    asset_server.load("metal_box_small.png"),
+                    GroundSpawnData::new(425, 475, -300, 300),
                 );
 
                 // Spawn enemies with varied positions

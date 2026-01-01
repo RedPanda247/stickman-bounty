@@ -40,7 +40,7 @@ impl Plugin for LoadingPlugin {
 // Resources to keep track of loading info
 
 #[derive(Resource)]
-struct GameStateBeingLoaded(LoadableGameStates);
+pub struct GameStateBeingLoaded(pub LoadableGameStates);
 
 #[derive(Resource)]
 struct AssetsBeingLoaded(Vec<UntypedHandle>);

@@ -8,7 +8,10 @@ pub struct GameDataPlugin;
 
 impl Plugin for GameDataPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<GameState>().init_state::<GameState>();
+        app.register_type::<GameState>()
+            .init_state::<GameState>()
+            .insert_resource(PlayingLevel::default())
+            ;
     }
 }
 
@@ -18,6 +21,9 @@ pub enum GameEntity {
     MainMenuEntity,
     LoadingScreenEntity,
 }
+
+#[derive(Resource, Default)]
+pub struct PlayingLevel(pub Option<u8>);
 
 #[derive(Default, Clone, Eq, PartialEq, Hash, Debug, Resource, Reflect, States, SystemSet)]
 #[reflect(Resource)]
