@@ -238,9 +238,12 @@ fn reset_jumps_on_ground(
 fn setup_animation_handles(asset_server: Res<AssetServer>, mut commands: Commands) {
     commands.insert_resource(AnimationImageHandles {
         player_default: asset_server.load("Player.png"),
-        player_jump_1: asset_server.load("player_jump_1.png"),
-        player_jump_2: asset_server.load("player_jump_2.png"),
-        player_jump_3: asset_server.load("player_jump_3.png"),
+        player_jump: [
+            asset_server.load("player_jump_1.png"),
+            asset_server.load("player_jump_2.png"),
+            asset_server.load("player_jump_3.png"),
+            asset_server.load("player_jump_4.png"),
+            ],
     });
 }
 
@@ -248,9 +251,7 @@ fn setup_animation_handles(asset_server: Res<AssetServer>, mut commands: Command
 
 struct AnimationImageHandles {
     player_default: Handle<Image>,
-    player_jump_1: Handle<Image>,
-    player_jump_2: Handle<Image>,
-    player_jump_3: Handle<Image>,
+    player_jump: [Handle<Image>; 4],    
 }
 
 fn animate_jump(
@@ -265,11 +266,13 @@ fn animate_jump(
         // Convert to milliseconds
         let js = (jump_time * 1000.).floor() as i32;
         if _in(0, js, 100) {
-            sprite.image = animation_image_handles.player_jump_1.clone();
+            sprite.image = animation_image_handles.player_jump[0].clone();
         } else if _in(100, js, 200) {
-            sprite.image = animation_image_handles.player_jump_2.clone();
-        }else if _in(200, js, 300) {
-            sprite.image = animation_image_handles.player_jump_3.clone();
+            sprite.image = animation_image_handles.player_jump[1].clone();
+        } else if _in(200, js, 300) {
+            sprite.image = animation_image_handles.player_jump[2].clone();
+        } else if _in(300, js, 400) {
+            sprite.image = animation_image_handles.player_jump[3].clone();
         }
     }
 }
