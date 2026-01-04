@@ -1,6 +1,7 @@
 use avian2d::prelude::*;
 use bevy::ecs::relationship::RelationshipSourceCollection;
 use bevy::prelude::*;
+use bevy::sprite;
 
 use crate::abilities::*;
 use crate::enemy::*;
@@ -12,7 +13,9 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
+        app
+            .add_systems(Startup, setup_animation_handles)
+            .add_systems(
             Update,
             (
                 player_movement,
@@ -26,10 +29,13 @@ impl Plugin for PlayerPlugin {
                 look_in_walk_direction,
                 reset_jumps_on_ground,
                 player_die,
+                animate_jump,
             )
                 .run_if(in_state(GameState::PlayingLevel)),
         )
         .add_observer(player_shoot_event)
+        .add_observer(start_jump_animation)
+        .add_observer(landed_from_jumping)
         // Add this observer to fan out Swinging/PullingEnemy
         .init_resource::<RightClickStartPostion>()
         .init_resource::<MovementModifiers>()
@@ -171,9 +177,29 @@ fn look_in_walk_direction(
     }
 }
 
+fn landed_from_jumping(
+    landed_event: On<LandedEvent>,
+    mut jumping_query: Query<(&Jumping, &mut Sprite)>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    animation_image_handles: Res<AnimationImageHandles>,
+) {
+    // Get entity with jumping component who just landed
+    if let Ok((jumping, mut sprite)) = jumping_query.get_mut(landed_event.entity) {
+        sprite.image = animation_image_handles.player_default.clone();
+        commands.entity(landed_event.entity).remove::<Jumping>();
+    }
+}
+
+#[derive(EntityEvent)]
+struct LandedEvent {
+    entity: Entity,
+}
+
 fn reset_jumps_on_ground(
     mut player_qy: Query<
         (
+            Entity,
             &Transform,
             &LinearVelocity,
             &CollidingEntities,
@@ -182,8 +208,11 @@ fn reset_jumps_on_ground(
         With<Player>,
     >,
     ground_qy: Query<&Transform, With<Ground>>,
+    mut commands: Commands,
 ) {
-    for (player_transform, velocity, colliding_entities, mut jumps_left) in player_qy.iter_mut() {
+    for (entity, player_transform, velocity, colliding_entities, mut jumps_left) in
+        player_qy.iter_mut()
+    {
         let player_y = player_transform.translation.y;
         let mut is_grounded = false;
 
@@ -194,6 +223,7 @@ fn reset_jumps_on_ground(
                 // Only consider grounded if player is at or above the ground and falling/stationary
                 if player_y >= ground_y && velocity.y <= 0.0 {
                     is_grounded = true;
+                    commands.trigger(LandedEvent { entity });
                     break;
                 }
             }
@@ -203,6 +233,69 @@ fn reset_jumps_on_ground(
             jumps_left.0 = 2;
         }
     }
+}
+
+fn setup_animation_handles(asset_server: Res<AssetServer>, mut commands: Commands) {
+    commands.insert_resource(AnimationImageHandles {
+        player_default: asset_server.load("Player.png"),
+        player_jump_1: asset_server.load("player_jump_1.png"),
+        player_jump_2: asset_server.load("player_jump_2.png"),
+        player_jump_3: asset_server.load("player_jump_3.png"),
+    });
+}
+
+#[derive(Resource)]
+
+struct AnimationImageHandles {
+    player_default: Handle<Image>,
+    player_jump_1: Handle<Image>,
+    player_jump_2: Handle<Image>,
+    player_jump_3: Handle<Image>,
+}
+
+fn animate_jump(
+    mut jump_query: Query<(&Jumping, &mut Sprite)>,
+    time: Res<Time>,
+    asset_server: Res<AssetServer>,
+    animation_image_handles: Res<AnimationImageHandles>,
+) {
+    for (jumping_component, mut sprite) in jump_query.iter_mut() {
+        let jump_time = time.elapsed_secs() - jumping_component.start_time;
+        // Get jump stage sprite from time
+        // Convert to milliseconds
+        let js = (jump_time * 1000.).floor() as i32;
+        if _in(0, js, 100) {
+            sprite.image = animation_image_handles.player_jump_1.clone();
+        } else if _in(100, js, 200) {
+            sprite.image = animation_image_handles.player_jump_2.clone();
+        }else if _in(200, js, 300) {
+            sprite.image = animation_image_handles.player_jump_3.clone();
+        }
+    }
+}
+
+// Check if value inside surrounding inputs
+fn _in(min: i32, check: i32, max: i32) -> bool {
+    check >= min && check <= max
+}
+
+#[derive(Component)]
+struct Jumping {
+    start_time: f32,
+}
+
+#[derive(EntityEvent)]
+struct JumpEvent {
+    entity: Entity,
+    start_time: f32,
+}
+
+fn start_jump_animation(jump_event: On<JumpEvent>, mut commands: Commands) {
+    commands.entity(jump_event.entity).insert(
+        (Jumping {
+            start_time: jump_event.start_time,
+        }),
+    );
 }
 
 #[derive(Component)]
@@ -216,17 +309,23 @@ pub struct Player;
 
 pub fn player_movement(
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut player_info: Query<(&mut LinearVelocity, &mut JumpsLeft), With<Player>>,
+    mut player_info: Query<(Entity, &mut LinearVelocity, &mut JumpsLeft), With<Player>>,
     time: Res<Time>,
     movement_modifiers: Res<MovementModifiers>,
+    mut commands: Commands,
 ) {
-    for (mut rb_vels, mut jumps_left) in player_info.iter_mut() {
+    for (entity, mut rb_vels, mut jumps_left) in player_info.iter_mut() {
         let max_running_speed =
             movement_modifiers.movement_force * movement_modifiers.max_running_speed;
 
         if keyboard_input.any_just_pressed([KeyCode::KeyW, KeyCode::ArrowUp]) && jumps_left.0 > 0 {
             rb_vels.y = movement_modifiers.movement_force * movement_modifiers.jumping_force;
             jumps_left.0 -= 1;
+            // Trigger JumpEvent
+            commands.trigger(JumpEvent {
+                entity,
+                start_time: time.elapsed_secs(),
+            });
         }
 
         let left = keyboard_input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]);
