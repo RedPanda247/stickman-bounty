@@ -28,8 +28,7 @@ impl Plugin for PlayerPlugin {
                     look_in_walk_direction,
                     reset_jumps_on_ground,
                     player_die,
-                    animate_jump,
-                    walking_animation,
+                    (walking_animation, animate_jump).chain(),
                 )
                     .run_if(in_state(GameState::PlayingLevel)),
             )
@@ -273,11 +272,11 @@ fn animate_jump(
         let jump_time = time.elapsed_secs() - jumping_component.start_time;
         // Get jump stage sprite from time
         // Convert to milliseconds
-        let js = (jump_time * 1000.).floor() as i32;
+        let js = (jump_time * 1000.).floor();
 
         // Select image based on time
         for i in 0..(animation_image_handles.player_jump.len() as i32) {
-            if _in(i * 50, js, (i + 1) * 50) {
+            if _in(i as f32 * 50., js, (i + 1) as f32 * 50.) {
                 sprite.image = animation_image_handles.player_jump[i as usize].clone();
             }
         }
@@ -285,7 +284,7 @@ fn animate_jump(
 }
 
 // Check if value inside surrounding inputs
-fn _in(min: i32, check: i32, max: i32) -> bool {
+fn _in(min: f32, check: f32, max: f32) -> bool {
     check >= min && check <= max
 }
 
@@ -375,22 +374,31 @@ fn walking_animation(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut commands: Commands,
 ) {
-    let walk_loop_time: f32 = 1.;
+    let walk_loop_time: f32 = 0.5;
     for (entity, walking, mut sprite) in walking_query.iter_mut() {
         let walking_time = time.elapsed_secs() - walking.start_time;
         let loop_time = walking_time % walk_loop_time;
 
-        // Convert to milliseconds
-        let lopp_time_milliseconds = (loop_time * 1000.).floor() as i32;
-
         let len = animation_image_handles.player_walk.len() as i32;
 
+        let anim_frame_time = walk_loop_time / len as f32;
+
         for i in 0..(len) {
-            if _in(i * (walk_loop_time / len as f32), lopp_time_milliseconds, (i + 1) * 50) {
+            if _in(
+                i as f32 * anim_frame_time,
+                loop_time,
+                (i + 1) as f32 * anim_frame_time,
+            ) {
                 sprite.image = animation_image_handles.player_walk[i as usize].clone();
             }
         }
-        if !keyboard_input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft, KeyCode::KeyD, KeyCode::ArrowRight]) {
+        if !keyboard_input.any_pressed([
+            KeyCode::KeyA,
+            KeyCode::ArrowLeft,
+            KeyCode::KeyD,
+            KeyCode::ArrowRight,
+        ]) {
+            sprite.image = animation_image_handles.player_default.clone();
             commands.entity(entity).remove::<Walking>();
         }
     }

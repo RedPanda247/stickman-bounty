@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use avian2d::prelude::*;
 use crate::game_data::*;
 
-const DASH_DAMAGE: f32= 20.;
+const DASH_DAMAGE: f32= 5.;
 
 pub struct DashPlugin;
 impl Plugin for DashPlugin {
