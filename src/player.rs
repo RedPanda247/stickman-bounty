@@ -13,36 +13,36 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(Startup, setup_animation_handles)
+        app.add_systems(Startup, setup_animation_handles)
             .add_systems(
-            Update,
-            (
-                player_movement,
-                camera_movement,
-                right_click_start_position_system,
-                right_click_end_position_system,
-                grapple_input_system,
-                end_grapple_input,
-                player_shoot_input,
-                player_health_ui,
-                look_in_walk_direction,
-                reset_jumps_on_ground,
-                player_die,
-                animate_jump,
+                Update,
+                (
+                    player_movement,
+                    camera_movement,
+                    right_click_start_position_system,
+                    right_click_end_position_system,
+                    grapple_input_system,
+                    end_grapple_input,
+                    player_shoot_input,
+                    player_health_ui,
+                    look_in_walk_direction,
+                    reset_jumps_on_ground,
+                    player_die,
+                    animate_jump,
+                    walking_animation,
+                )
+                    .run_if(in_state(GameState::PlayingLevel)),
             )
-                .run_if(in_state(GameState::PlayingLevel)),
-        )
-        .add_observer(player_shoot_event)
-        .add_observer(start_jump_animation)
-        .add_observer(landed_from_jumping)
-        // Add this observer to fan out Swinging/PullingEnemy
-        .init_resource::<RightClickStartPostion>()
-        .init_resource::<MovementModifiers>()
-        .register_type::<MovementModifiers>()
-        .insert_resource(MovementModifiers::default())
-        .init_resource::<GrappleKeybind>()
-        .init_resource::<GrapplingHookConfig>();
+            .add_observer(player_shoot_event)
+            .add_observer(start_jump_animation)
+            .add_observer(landed_from_jumping)
+            // Add this observer to fan out Swinging/PullingEnemy
+            .init_resource::<RightClickStartPostion>()
+            .init_resource::<MovementModifiers>()
+            .register_type::<MovementModifiers>()
+            .insert_resource(MovementModifiers::default())
+            .init_resource::<GrappleKeybind>()
+            .init_resource::<GrapplingHookConfig>();
     }
 }
 
@@ -181,7 +181,6 @@ fn landed_from_jumping(
     landed_event: On<LandedEvent>,
     mut jumping_query: Query<(&Jumping, &mut Sprite)>,
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
     animation_image_handles: Res<AnimationImageHandles>,
 ) {
     // Get entity with jumping component who just landed
@@ -248,6 +247,12 @@ fn setup_animation_handles(asset_server: Res<AssetServer>, mut commands: Command
             asset_server.load("player_jump_7.png"),
             asset_server.load("player_jump_8.png"),
         ],
+        player_walk: [
+            asset_server.load("player_walk_1.png"),
+            asset_server.load("player_walk_2.png"),
+            asset_server.load("player_walk_3.png"),
+            asset_server.load("player_walk_4.png"),
+        ],
     });
 }
 
@@ -255,7 +260,8 @@ fn setup_animation_handles(asset_server: Res<AssetServer>, mut commands: Command
 
 struct AnimationImageHandles {
     player_default: Handle<Image>,
-    player_jump: [Handle<Image>; 8],    
+    player_jump: [Handle<Image>; 8],
+    player_walk: [Handle<Image>; 4],
 }
 
 fn animate_jump(
@@ -335,6 +341,14 @@ pub fn player_movement(
         let left = keyboard_input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]);
         let right = keyboard_input.any_pressed([KeyCode::KeyD, KeyCode::ArrowRight]);
 
+        if keyboard_input.any_just_pressed([KeyCode::KeyA, KeyCode::ArrowLeft])
+            || keyboard_input.any_just_pressed([KeyCode::KeyD, KeyCode::ArrowRight])
+        {
+            commands.entity(entity).insert(Walking {
+                start_time: time.elapsed_secs(),
+            });
+        }
+
         let x_axis_movement = (-(left as i8) + right as i8) as f32;
         let horizontal_velocity_delta_from_movement =
             x_axis_movement * movement_modifiers.movement_force * time.delta_secs();
@@ -345,6 +359,39 @@ pub fn player_movement(
             <= max_running_speed
         {
             rb_vels.x += horizontal_velocity_delta_from_movement;
+        }
+    }
+}
+
+#[derive(Component)]
+struct Walking {
+    start_time: f32,
+}
+
+fn walking_animation(
+    mut walking_query: Query<(Entity, &Walking, &mut Sprite)>,
+    time: Res<Time>,
+    animation_image_handles: Res<AnimationImageHandles>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut commands: Commands,
+) {
+    let walk_loop_time: f32 = 1.;
+    for (entity, walking, mut sprite) in walking_query.iter_mut() {
+        let walking_time = time.elapsed_secs() - walking.start_time;
+        let loop_time = walking_time % walk_loop_time;
+
+        // Convert to milliseconds
+        let lopp_time_milliseconds = (loop_time * 1000.).floor() as i32;
+
+        let len = animation_image_handles.player_walk.len() as i32;
+
+        for i in 0..(len) {
+            if _in(i * (walk_loop_time / len as f32), lopp_time_milliseconds, (i + 1) * 50) {
+                sprite.image = animation_image_handles.player_walk[i as usize].clone();
+            }
+        }
+        if !keyboard_input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft, KeyCode::KeyD, KeyCode::ArrowRight]) {
+            commands.entity(entity).remove::<Walking>();
         }
     }
 }
