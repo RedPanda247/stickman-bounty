@@ -243,7 +243,11 @@ fn setup_animation_handles(asset_server: Res<AssetServer>, mut commands: Command
             asset_server.load("player_jump_2.png"),
             asset_server.load("player_jump_3.png"),
             asset_server.load("player_jump_4.png"),
-            ],
+            asset_server.load("player_jump_5.png"),
+            asset_server.load("player_jump_6.png"),
+            asset_server.load("player_jump_7.png"),
+            asset_server.load("player_jump_8.png"),
+        ],
     });
 }
 
@@ -251,13 +255,12 @@ fn setup_animation_handles(asset_server: Res<AssetServer>, mut commands: Command
 
 struct AnimationImageHandles {
     player_default: Handle<Image>,
-    player_jump: [Handle<Image>; 4],    
+    player_jump: [Handle<Image>; 8],    
 }
 
 fn animate_jump(
     mut jump_query: Query<(&Jumping, &mut Sprite)>,
     time: Res<Time>,
-    asset_server: Res<AssetServer>,
     animation_image_handles: Res<AnimationImageHandles>,
 ) {
     for (jumping_component, mut sprite) in jump_query.iter_mut() {
@@ -265,14 +268,12 @@ fn animate_jump(
         // Get jump stage sprite from time
         // Convert to milliseconds
         let js = (jump_time * 1000.).floor() as i32;
-        if _in(0, js, 100) {
-            sprite.image = animation_image_handles.player_jump[0].clone();
-        } else if _in(100, js, 200) {
-            sprite.image = animation_image_handles.player_jump[1].clone();
-        } else if _in(200, js, 300) {
-            sprite.image = animation_image_handles.player_jump[2].clone();
-        } else if _in(300, js, 400) {
-            sprite.image = animation_image_handles.player_jump[3].clone();
+
+        // Select image based on time
+        for i in 0..(animation_image_handles.player_jump.len() as i32) {
+            if _in(i * 50, js, (i + 1) * 50) {
+                sprite.image = animation_image_handles.player_jump[i as usize].clone();
+            }
         }
     }
 }
