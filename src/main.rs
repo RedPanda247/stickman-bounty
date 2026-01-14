@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 use avian2d::prelude::*;
 use bevy::{prelude::*};
 use bevy_egui::EguiPlugin;
