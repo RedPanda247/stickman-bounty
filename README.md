@@ -1,4 +1,4 @@
-# A 2d plattformer game written in Rust using the Bevy game engine.
+# A 2d plattformer game written in Rust using the Bevy game engine
 
 ## What
 You are a stickman bounty hunter and your goal is to kill the purple stickmen (the targets)
@@ -11,7 +11,7 @@ After completing each level you unlock the next
 
 ### Shoot with left mouse button to eliminate targets at a distance
 
-### Dash, By holding down the right mouse button dragging in desired dash direction ald letting go, causing your character to do a violent dash traveling in a straight line 
+### Dash, By holding down the right mouse button dragging in desired dash direction and letting go, causing your character to do a violent dash traveling in a straight line 
 
 ### Grapple by pressing space to swing your way forward or grapple an enemy to pull them towards you
 
