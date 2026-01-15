@@ -37,8 +37,8 @@ fn main() {
                 })
                 .set(ImagePlugin::default_nearest()),
             bevy_framepace::FramepacePlugin,
-            EguiPlugin::default(),
-            WorldInspectorPlugin::default(),
+            // EguiPlugin::default(),
+            // WorldInspectorPlugin::default(),
             PhysicsPlugins::default().set(PhysicsInterpolationPlugin::interpolate_all()),
         ))
         // .insert_resource(FramepaceSettings{ limiter: Limiter::from_framerate(144.)})
