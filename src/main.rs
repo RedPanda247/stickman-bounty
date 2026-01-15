@@ -37,7 +37,7 @@ fn main() {
                 })
                 .set(ImagePlugin::default_nearest()),
             bevy_framepace::FramepacePlugin,
-            EguiPlugin::default(),
+            // EguiPlugin::default(),
             // WorldInspectorPlugin::default(),
             PhysicsPlugins::default().set(PhysicsInterpolationPlugin::interpolate_all()),
         ))
